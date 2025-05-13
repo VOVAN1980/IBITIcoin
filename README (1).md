@@ -1,95 +1,119 @@
-# 🚀 IBITIcoin Project
+# 🚀 IBITIcoin
 
-IBITIcoin is a decentralized ecosystem built on BNB Smart Chain, combining a native token ($IBITI), NFT infrastructure, DAO governance, buyback mechanisms, and staking — all modular and verified.
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
----
+## О проекте
 
-## 🧩 Modules Included
+**IBITIcoin** — модульная децентрализованная экосистема на BNB Smart Chain, включающая:
+- **IBITIcoin.sol** — основной токен с поддержкой покупки за BNB/USDT, динамическими комиссиями и интеграциями  
+- **StakingModule** — механизм стекинга с вознаграждениями  
+- **BuybackManager** — автоматический байбэк токенов и сжигание  
+- **DAO-модуль** — гибкое управление через децентрализованное голосование  
+- **NFTDiscount** — система скидок для держателей NFT  
+- **NFTSaleManager** — продажа и вестинг специальных NFT  
+- **BridgeManager** — кросс-чейн мост  
+- **UserStatusManager** — управление статусами пользователей (блокировка, заморозка)  
+- **VolumeWeightedOracle** — оракул для расчёта динамических комиссий  
+- **MockUniswapV2Pair** — тестовый Pair для локальной разработки
 
-| Module             | Description |
-|--------------------|-------------|
-| `IBITIcoin.sol`    | Native token with BNB/USDT purchase support, dynamic fees, and integrations |
-| `IBITINFT.sol`     | NFT with mint limits, categories, and integrations |
-| `FeeManager.sol`   | Handles dynamic fees with NFT-based discounts |
-| `NFTDiscount.sol`  | NFT categories for VIP/Staking/Jackpot |
-| `NFTSaleManager.sol` | NFT purchasing system using USDT or IBITI |
-| `BuybackManager.sol` | Buyback tokens from liquidity pool and burn |
-| `TeamVesting.sol`  | Team token vesting with monthly unlock |
-| `DAOModule.sol`    | Governance with proposal voting and NFT rewards |
-| `StakingModule.sol` | Stake IBITI to earn yield and NFT bonuses |
-
----
-
-## 📄 Contracts (Testnet)
-
-| Name | Address |
-|------|---------|
-| IBITIcoin | `0xE74bc1a98b00Dd283aa9DaDFa3c00CB19e532961` |
-| IBITINFT | `0x3493B34cC27847234c3C424809f27f369DDc5D91` |
-| FeeManager | `0x5B3ec05C4F4505EB0d4b2c35fe772bD74Fa13721` |
-| NFTDiscount | `0x1a49D38feE9BdDEF99b8478419b8b3ac645c403d` |
-| NFTSaleManager | `0xa87a1951806FC1eFAf85Cf8688AB82Dd990e08a1` |
-| BuybackManager | `0x5Cf4DA7d8d8FF0c9d8954A3CdBF1eB3F41C85591` |
-| TeamVesting | `0x98D43B4A4A89eb8B02B4aB54D87183aFd53d7F9C` |
-| StakingModule | `0xf1d6963793155385c258Fd88Ee44F87F26E3931a` |
-| DAOModuleImpl | `0x5A468372E196Ae7E822Ea224E6caEF9A22EF8b10` |
-| VW Oracle | `0x863CeD02c86CB6fC1d0b7162929127d4C3b45303` |
-
----
-## 🧪 Run Tests
-Из-за ограничения на размер, все тесты находятся в архиве:
-
-📦 `Архив ZIP - WinRAR.zip`
-
-➤ Распакуйте вручную в корень проекта, чтобы использовать:
-
-```bash
-unzip "Архив ZIP - WinRAR.zip"
-npx hardhat test
-
-📂 Тесты находятся в архиве: [test.zip](./Архив%20ZIP%20-%20WinRAR.zip)
-
-### 🔎 Coverage
-
-- ✅ 96%+ lines tested
-- ✅ 1000+ passing tests
-
----
-
-## 🚀 Deployment
-
-```bash
-npx hardhat run scripts/deploy-testnet.js --network bscTestnet
-```
-
-## ✅ Verification
-
-```bash
-npx hardhat run scripts/verify-testnet.js --network bscTestnet
-```
-
-## 🔐 Utility Scripts
-
-```bash
-npx hardhat run scripts/disable-fee.js --network bscTestnet <userAddress>
-```
-
----
-
-## 🌐 Environment Variables
-
-`.env.example` contains all required values:
+## Структура репозитория
 
 ```
-PRIVATE_KEY=...
-BSC_RPC_URL=...
-BSCSCAN_API_KEY=...
-WALLET_ADDRESS=...
-...
+├── backend/                  # Серверная часть (API, скрипты)
+├── contracts/                # Solidity-контракты
+├── frontend/                 # Web-интерфейс покупки токенов и NFT
+├── scripts/                  # Скрипты деплоя и верификации
+├── tests.zip                 # Архив с тестами (покрытие 100% для основных модулей)
+├── env.example               # Пример .env с переменными окружения
+├── hardhat.config.js         # Конфигурация Hardhat
+├── package.json              # Зависимости и команды
+├── README.md                 # Текущий файл
+├── LICENSE                   # MIT License
+└── коин.png                  # Логотип проекта
 ```
+
+## Быстрый старт
+
+1. **Клонировать репозиторий**  
+   ```bash
+   git clone https://github.com/VOVAN1980/IBITIcoin.git
+   cd IBITIcoin
+   ```
+
+2. **Установить зависимости**  
+   ```bash
+   npm install
+   ```
+
+3. **Настроить переменные окружения**  
+   Скопируйте `env.example` в `.env` и заполните:
+   ```
+   BSC_TESTNET_RPC_URL=
+   PRIVATE_KEY=
+   BSCSCAN_API_KEY=
+   USDT_ADDRESS=
+   ```
+   
+4. **Компиляция контрактов**  
+   ```bash
+   npx hardhat compile
+   ```
+
+5. **Запуск локальных тестов**  
+   ```bash
+   npx hardhat test
+   ```
+
+6. **Верификация контрактов в Testnet**  
+   ```bash
+   npx hardhat run scripts/verify-testnet.js --network bscTestnet
+   ```
+
+## Развёрнутые контракты (BSC Testnet)
+
+| Модуль                   | Адрес                                               |
+|--------------------------|-----------------------------------------------------|
+| ERC20Mock                | `0xf15692dAF9963A46D8518bCE93EAbd20012C287e`        |
+| FeeManager               | `0x4bb2d1E1a75a0B5c0963EF8e1760EC1C7cb3C0e7`        |
+| UserStatusManager        | `0x7B7cA67f7e9F613AFBd191375fa2DF5bA9211D34`        |
+| BridgeManager            | `0xb9B511F02B8cC6934585A8b9BDC995Ee89c31605`        |
+| NFTDiscount              | `0x7d9294F0Fb9845C8060d5c630dc6D306a6F51FAe`        |
+| VolumeWeightedOracle     | `0x222E76b36B4C0A4121727a19d58010eB0c007d57`        |
+| MockUniswapV2Pair        | `0x76ff136B22613483a62e86EA2e61A13b3Faa94bf`        |
+| TeamVesting              | `0x499b9F15D8ab03eC8FB0D285C622B26a19685fa5`        |
+| StakingModule            | `0x4Ef7b929B6D685e8a4eD7C1d9D31a6603A7a589d`        |
+| DAOModuleImpl            | `0x37dD8412e1499f1CF9d091baf358B823D14BC4C6`        |
+| IBITIcoin                | `0x685B7FFE8fEB439601EF597c6E7F08b7566a622f`        |
+| IBITINFT                 | `0x1EE84a0b3685c2B8142138Cf4F55fD75CDE2ccC8`        |
+| NFTSaleManager           | `0xA1C56109B5b4fd740b51A03D3dA3507f527EA90b`        |
+| BuybackManager           | `0x20823848D1606c21C1102cf68d07cff89516Cf0D`        |
+
+> **Внимание:** перед деплоем в Mainnet адаптируйте `.env`, проверьте параметры комиссий и приватный ключ.
+
+## Развёртывание в Mainnet
+
+1. Обновите `BSC_MAINNET_RPC_URL` и `PRIVATE_KEY` в `.env`.  
+2. Запустите:
+   ```bash
+   npx hardhat run scripts/deploy.js --network bsc
+   ```
+3. Проверьте и верифицируйте контракты:
+   ```bash
+   npx hardhat verify --network bsc <DeployAddress> --constructor-args args.js
+   ```
+
+## Вклад и поддержка
+
+1. Форкните проект.  
+2. Создайте ветку `feature/имя_функционала`.  
+3. Напишите код и тесты.  
+4. Откройте Pull Request — мы максимально быстро проведём ревью и вольём изменения.
+
+## Лицензия
+
+Проект распространяется под **MIT License**. Подробности — в файле [LICENSE](LICENSE).
 
 ---
 
-## 📜 License
-
-MIT © IBITIcoin 2025
+> _«Продолжая развивать IBITIcoin, мы шагнём в будущее DeFi и NFT с уверенностью и безопасностью.»_  
+> — команда IBITIcoin
