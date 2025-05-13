@@ -1,0 +1,22 @@
+# Node
+node_modules/
+package-lock.json
+
+# Hardhat build
+artifacts/
+cache/
+coverage/
+
+# Flattened output
+flattened.sol
+
+# Env files (секреты)
+.env
+
+# VS Code / OS / Logs
+*.log
+.DS_Store
+.vscode/
+
+# Optional: Output of other tools
+typechain/
