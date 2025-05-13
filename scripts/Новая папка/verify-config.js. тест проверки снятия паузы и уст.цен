@@ -1,0 +1,84 @@
+// scripts/verify-config.js
+require('dotenv').config();
+const { ethers } = require('hardhat');
+
+async function main() {
+  const {
+    IBITI_TOKEN_ADDRESS,
+    NFTSALEMANAGER_ADDRESS,
+    IBITINFT_ADDRESS,
+    USDT_TOKEN_ADDRESS
+  } = process.env;
+
+  if (
+    !IBITI_TOKEN_ADDRESS ||
+    !NFTSALEMANAGER_ADDRESS ||
+    !IBITINFT_ADDRESS ||
+    !USDT_TOKEN_ADDRESS
+  ) {
+    console.error('❌ В .env должны быть заданы:');
+    console.error(
+      '  IBITI_TOKEN_ADDRESS, NFTSALEMANAGER_ADDRESS, ' +
+      'IBITINFT_ADDRESS, USDT_TOKEN_ADDRESS'
+    );
+    process.exit(1);
+  }
+
+  const [deployer] = await ethers.getSigners();
+  console.log(`\n> Проверяем на аккаунте: ${deployer.address}\n`);
+
+  // Подключаем контракты
+  const IB   = await ethers.getContractFactory('IBITIcoin');
+  const ibi  = IB.attach(IBITI_TOKEN_ADDRESS);
+  const NSM  = await ethers.getContractFactory('NFTSaleManager');
+  const nsm  = NSM.attach(NFTSALEMANAGER_ADDRESS);
+  const INFT = await ethers.getContractFactory('IBITINFT');
+  const inft = INFT.attach(IBITINFT_ADDRESS);
+
+  // 1. Модули в IBITIcoin
+  console.log('--- IBITIcoin modules:');
+  console.log('FeeManager:        ', await ibi.feeManager());
+  console.log('UserStatusManager: ', await ibi.userStatusManager());
+  console.log('BridgeManager:     ', await ibi.bridgeManager());
+  console.log('StakingModule:     ', await ibi.stakingModule());
+  console.log('DaoModule:         ', await ibi.daoModule());
+  console.log('NftDiscount:       ', await ibi.nftDiscount());
+
+  // 2. Paused статус
+  console.log('\n--- Paused status:');
+  console.log('IBITIcoin paused?       ', await ibi.paused());
+  console.log('NFTSaleManager paused?  ', await nsm.paused());
+  console.log('IBITINFT paused?        ', await inft.paused());
+
+  // 3. Цены монеты
+  console.log('\n--- Coin prices:');
+  console.log('coinPriceUSD:           ', (await ibi.coinPriceUSD()).toString());
+  console.log('coinPriceBNB:           ', (await ibi.coinPriceBNB()).toString());
+  console.log(
+    'coinPriceToken (USDT):  ',
+    (await ibi.coinPriceTokens(USDT_TOKEN_ADDRESS)).toString()
+  );
+
+  // 4. Цены NFTSaleManager
+  console.log('\n--- NFTSaleManager prices:');
+  const levels = [1, 3, 5, 7, 10, 15, 25, 50, 75, 100];
+  for (const lvl of levels) {
+    // mapping nftPriceUSD
+    const price = await nsm.nftPriceUSD(lvl);
+    console.log(`nftPrice[${lvl}%]:        `, price.toString());
+  }
+
+  // 5. IBITINFT USDT-параметры
+  console.log('\n--- IBITINFT USDT parameters:');
+  console.log('usdtToken:              ', await inft.usdtToken());
+  console.log('usdtPrice:              ', (await inft.nftPriceUSDT()).toString());
+
+  console.log('\n✅ Проверка завершена.');
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch(err => {
+    console.error('❌ Ошибка verify-config.js:', err);
+    process.exit(1);
+  });
