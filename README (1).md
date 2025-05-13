@@ -53,7 +53,7 @@ npx hardhat test
 ## 🚀 Deployment
 
 ```bash
-npx hardhat run scripts/deploy.js --network bscTestnet
+npx hardhat run scripts/deploy-testnet.js --network bscTestnet
 ```
 
 ## ✅ Verification
