@@ -38,10 +38,12 @@ IBITIcoin is a decentralized ecosystem built on BNB Smart Chain, combining a nat
 ---
 
 ## 🧪 Run Tests
-📂 Тесты находятся в архиве: [test.zip](./Архив%20ZIP%20-%20WinRAR.zip)
 ```bash
 npx hardhat test
 ```
+
+### 🧪 Тесты
+📂 Тесты находятся в архиве: [test.zip](./Архив%20ZIP%20-%20WinRAR.zip)
 
 ### 🔎 Coverage
 
