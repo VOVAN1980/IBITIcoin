@@ -36,13 +36,17 @@ IBITIcoin is a decentralized ecosystem built on BNB Smart Chain, combining a nat
 | VW Oracle | `0x863CeD02c86CB6fC1d0b7162929127d4C3b45303` |
 
 ---
-
 ## 🧪 Run Tests
-```bash
-npx hardhat test
-```
+Из-за ограничения на размер, все тесты находятся в архиве:
 
-### 🧪 Тесты
+📦 `Архив ZIP - WinRAR.zip`
+
+➤ Распакуйте вручную в корень проекта, чтобы использовать:
+
+```bash
+unzip "Архив ZIP - WinRAR.zip"
+npx hardhat test
+
 📂 Тесты находятся в архиве: [test.zip](./Архив%20ZIP%20-%20WinRAR.zip)
 
 ### 🔎 Coverage
