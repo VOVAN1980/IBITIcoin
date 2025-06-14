@@ -34,9 +34,9 @@
 
 ---
 
-## 🌐 Демо
+## 🌐 Сайт проекта
 
-[🔗 Перейти на сайт](https://vovan1980.github.io/ibiticoin.github.io/)
+[🌍 ibiticoin.com](https://www.ibiticoin.com/)
 
 ---
 
