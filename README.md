@@ -18,7 +18,7 @@
 - `UserStatusManager` — блокировки, заморозка, статусы пользователей
 - `VolumeWeightedOracle` — расчёт комиссий на основе объёма
 - `MockUniswapV2Pair` — тестовый Pair для локальной разработки
-
+- 
 ---
 
 ## ⚙️ Функциональность
@@ -37,7 +37,7 @@
 ## 🌐 Сайт проекта
 
 [🌍 ibiticoin.com](https://www.ibiticoin.com/)
-
+-
 ---
 
 ## 📁 Структура репозитория
@@ -138,9 +138,18 @@ npx hardhat verify --network bsc <DeployAddress> --constructor-args args.js
 Откройте Pull Request
 
 📬 Контакты
-Telegram: @IBITIcoin
-
+Наш сайт, и  каналы.
+сайт   -     www.ibiticoin.com 
+фейсбук - https://www.facebook.com/ibiticoin.ibiticoin/
+твитер, -  https://x.com/ibiticoin
+телеграм, -t.me/IBITIcoin_chat
+линкед, -www.linkedin.com/in/ibiticoin
 Issues: GitHub Issues
+
+Документация
+- White Paper проекта IBITI
+- Ibiti White Paper En
+
 
 📄 Лицензия
 Проект распространяется под лицензией MIT. Подробнее — в файле LICENSE.
