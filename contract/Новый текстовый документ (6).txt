@@ -1,0 +1,8 @@
+npx hardhat run scripts/configure-phased-sale.js --network hardhat - кнфигурация на локальной сети
+
+
+npx hardhat run scripts/check-integrations.js --network bsc   -----  интеграция
+
+ npx hardhat run scripts/deploy-mainnet.js --network bsc ---- деплой 3 х контрактов
+
+npx hardhat run scripts/configure-phased-sale.js --network bsc ---- деплой конфигурации нового контракта
