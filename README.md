@@ -18,7 +18,10 @@
 - `UserStatusManager` — блокировки, заморозка, статусы пользователей
 - `VolumeWeightedOracle` — расчёт комиссий на основе объёма
 - `MockUniswapV2Pair` — тестовый Pair для локальной разработки
-- 
+- `FeeManager.sol
+- `PhasedTokenSale.sol
+- `IBITINFT.sol
+- `TeamVesting.sol
 ---
 
 ## ⚙️ Функциональность
