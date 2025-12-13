@@ -8,20 +8,20 @@
 
 **IBITIcoin** — модульная децентрализованная экосистема на BNB Smart Chain, включающая:
 
-- `IBITIcoin.sol` — основной токен с возможностью покупки за BNB/USDT и динамическими комиссиями
-- `StakingModule` — стекинг с гибкими параметрами вознаграждений
-- `BuybackManager` — автоматический байбэк и сжигание токенов
-- `DAO-модуль` — управление экосистемой через голосование
-- `NFTDiscount` — скидки при покупке за счёт NFT
-- `NFTSaleManager` — управление продажей и вестингом NFT
-- `BridgeManager` — кросс-чейн мост
-- `UserStatusManager` — блокировки, заморозка, статусы пользователей
-- `VolumeWeightedOracle` — расчёт комиссий на основе объёма
-- `MockUniswapV2Pair` — тестовый Pair для локальной разработки
-- `FeeManager.sol
-- `PhasedTokenSale.sol
-- `IBITINFT.sol
-- `TeamVesting.sol
+- `IBITIcoin.sol` – main BEP-20 token of the ecosystem with dynamic fees; integrated with the sale, staking and fee manager modules.
+- `StakingModule.sol` – fixed-term staking (1–12 months) with configurable reward parameters and early-unstake penalties.
+- `BuybackManager.sol` – automated buyback and burn logic for supporting secondary-market liquidity and price stability.
+- `DAOModule.sol` / `DAOModuleImplementation.sol` – on-chain governance module for proposals and voting that controls key protocol parameters.
+- `NFTDiscount.sol` – discount engine that links IBITI NFTs to reduced fees / prices depending on NFT rarity.
+- `NFTSaleManager.sol` – NFT sale controller with price tiers, vesting rules and integration with the discount logic.
+- `BridgeManager.sol` – cross-chain bridge manager for moving IBITI between BNB Smart Chain and other supported networks.
+- `UserStatusManager.sol` – centralized place for account status flags (block, freeze, KYC/AML status) used by other modules.
+- `VolumeWeightedOracle.sol` – internal oracle that calculates dynamic fees based on trading volume and recent activity.
+- `FeeManager.sol` – flexible fee configuration (buy/sell fees, volatility tiers, NFT discounts) used by the main token and sale modules.
+- `PhasedTokenSale.sol` – multi-phase token sale contract with fixed prices per phase and optional fallback sale mode.
+- `IBITINFT.sol` – ERC-721 collection for the official IBITI NFTs that unlock discounts and other on-chain utility.
+- `TeamVesting.sol` – linear vesting for team / advisor allocations with configurable cliffs and schedules.
+- `ERC20Mock.sol` / mock pair contracts – helper contracts for local testing of swaps, fees and integrations.
 ---
 
 ## ⚙️ Функциональность
