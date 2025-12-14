@@ -1,8 +1,5 @@
 # 🚀 IBITIcoin
 
-![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-100%25-success)
-![Network](https://img.shields.io/badge/network-BSC-blue)
 
 ## О проекте
 
