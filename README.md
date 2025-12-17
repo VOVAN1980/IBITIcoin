@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="img/logo.png" alt="IBITIcoin logo" width="160">
+  <img src="img/logo.png" alt="logo.png" width="160">
 </p>
 
 # IBITIcoin
