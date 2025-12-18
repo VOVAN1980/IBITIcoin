@@ -69,7 +69,7 @@ From the user / protocol point of view IBITIcoin supports:
   - NFT-based discounts  
   - dynamic trading fees
 
-- **Jackpot / airdrop mechanics** (configurable) on token buys
+- **Jackpot / airdrop mechanics** - Optional jackpot mechanics on token buys (not enabled on BSC mainnet).
 
 - **Dynamic fees** driven by:
   - recent trading volume  
