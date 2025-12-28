@@ -94,7 +94,7 @@ From the user / protocol point of view IBITIcoin supports:
 
 - Website: **https://www.ibiticoin.com/**
 - Twitter / X: **https://x.com/ibiticoin**
-- Facebook: **https://www.facebook.com/ibiticoin.ibiticoin**
+- Facebook: **https://www.facebook.com/groups/ibiticoin**
 - Telegram (community chat): **https://t.me/IBITIcoin_chat**
 - LinkedIn: **https://www.linkedin.com/in/ibiticoin**
 
