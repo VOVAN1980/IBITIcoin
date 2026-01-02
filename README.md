@@ -160,7 +160,7 @@ If you find a potential vulnerability or critical issue, please contact the team
 
 License
 MIT License — see LICENSE.md.
-
+-------------------------------------
 Official Links
 Website: https://www.ibiticoin.com
 
