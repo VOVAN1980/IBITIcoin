@@ -1,144 +1,170 @@
 <p align="center">
-  <img src="img/logo.png" alt="IBITIcoin logo" width="160">
+  <a href="https://www.ibiticoin.com">
+    <img src="img/logo.png" alt="IBITIcoin" width="180" />
+  </a>
 </p>
 
-# IBITIcoin
+<h1 align="center">IBITIcoin Contracts</h1>
 
-**IBITIcoin (IBITI)** is a modular decentralized ecosystem built on  
-**BNB Smart Chain (BEP-20)** with a strong focus on on-chain transparency,
-governance, sustainability and long-term protocol development.
+<p align="center">
+  Smart contracts and deployment tooling for <b>IBITIcoin (IBITI)</b> on <b>BNB Smart Chain (BEP-20)</b>.
+</p>
 
-The project is designed as a set of independent smart-contract modules
-that can be upgraded, extended or governed via on-chain mechanisms,
-rather than a single monolithic contract.
+<p align="center">
+  <a href="https://www.ibiticoin.com">Website</a> •
+  <a href="https://www.ibiticoin.com/whitepaper.html">Whitepaper</a> •
+  <a href="https://t.me/IBITIcoin_chat">Telegram</a> •
+  <a href="https://x.com/ibiticoin">X</a> •
+  <a href="https://www.facebook.com/groups/ibiticoin">Facebook Group</a> •
+  <a href="https://www.linkedin.com/in/ibiticoin">LinkedIn</a>
+</p>
 
 ---
 
-## 🔑 Key Parameters
+## Overview
 
-- Network: BNB Smart Chain (BSC)
-- Chain ID: 56
-- Standard: BEP-20
-- Token name: IBITIcoin
-- Symbol: IBITI
-- Decimals: 8
-- Max supply: 100,000,000 IBITI
+This repository contains the Solidity contracts and Hardhat scripts used for IBITIcoin.
+It is intended for developers, integrators, and auditors who want to review the code and reproduce builds/deployments.
+
+> ⚠️ Disclaimer: This repository is provided “as is” for transparency and review.
+> Nothing here is financial advice. Always do your own research and testing.
+
+---
+
+## Token
+
+- **Name:** IBITIcoin
+- **Symbol:** IBITI
+- **Standard:** BEP-20
+- **Network:** BNB Smart Chain (BSC)
+- **Decimals:** 8
+- **Max supply:** 100,000,000 IBITI
 
 **Mainnet token address**
-0x47F2FFCb164b2EeCCfb7eC436Dfb3637a457B9bb
+- `0x47F2FFCb164b2EeCCfb7eC436Dfb3637a457B9bb`
 
-markdown
-Копировать код
-
-**Primary liquidity**
-- Pair: IBITI / USDT
-- DEX: PancakeSwap V2
+**Primary DEX**
+- PancakeSwap (IBITI / USDT)  
+  https://pancakeswap.finance/swap?chain=bsc&outputCurrency=0x47F2FFCb164b2EeCCfb7eC436Dfb3637a457B9bb&inputCurrency=0x55d398326f99059fF775485246999027B3197955
 
 ---
 
-## 🧱 Architecture Overview
+## Repository Structure
 
-IBITIcoin is implemented as a modular smart-contract system.
-Each component is responsible for a specific protocol function.
-
-### Core contracts
-
-- **IBITIcoin.sol**  
-  Main BEP-20 token contract with fee hooks and integration points.
-
-- **FeeManager.sol**  
-  Centralized fee configuration module supporting:
-  - buy/sell fees  
-  - dynamic fee tiers  
-  - oracle-driven adjustments  
-  - NFT-based discounts
-
-- **StakingModule.sol**  
-  Fixed-term staking with configurable APR, lock periods and early-exit penalties.
-
-- **BuybackManager.sol**  
-  Buyback and burn logic funded from protocol revenue to support long-term
-  liquidity and price stability.
-
-- **DAOModule.sol / DAOModuleImplementation.sol**  
-  On-chain governance system:
-  - proposal creation  
-  - voting  
-  - execution of protocol parameter changes
-
-- **NFTDiscount.sol**  
-  Discount engine linking IBITI NFTs to reduced fees and special conditions.
-
-- **NFTSaleManager.sol**  
-  NFT sale controller with tiered pricing, optional vesting and discount support.
-
-- **TeamVesting.sol**  
-  Linear vesting contract with cliffs and schedules for team and advisors.
-
-- **BridgeManager.sol**  
-  Cross-chain expansion hooks for future IBITI deployments on other networks.
-
-- **UserStatusManager.sol**  
-  User status registry supporting:
-  - block / freeze flags  
-  - compliance states  
-  - access control checks across modules
-
-- **VolumeWeightedOracle.sol**  
-  Internal oracle primarily used for dynamic fee calculations
-  based on recent trading activity.
+- `contracts/` — Solidity smart contracts (core + modules)
+- `scripts/` — Hardhat scripts for deployment and verification
+- `img/` — brand assets used by README and docs
+- `hardhat.config.js` — Hardhat configuration
+- `.env.example` — environment variables template
+- `IBITIcoin_whitepaper_EN.pdf` — whitepaper (EN)
+- `IBITI_Business_Plan_v3.0_EN.pdf` — business plan (EN)
+- `Token Schedule & Vesting.pdf` — token schedule / vesting overview
 
 ---
 
-## 🔐 Security Model
+## Contracts
 
-- No hidden minting
-- Supply cap enforced on-chain
-- Explicit token allowances
-- Treasury operations executed via smart contracts
-- Vesting enforced by immutable schedules
-- Governance actions recorded fully on-chain
+Contracts included in `contracts/` (as currently present in this repo):
 
-Owner permissions are limited to configuration and do not allow arbitrary
-token minting or supply manipulation.
+### Core / Token
+- `IBITIcoin.sol` — IBITI BEP-20 token contract
+- `BaseToken.sol` — base token utilities / base implementation (project internal)
+
+### Fees / Buyback / Treasury-related Modules
+- `FeeManager.sol` — fee configuration/management module (project internal)
+- `BuybackManager.sol` — buyback management module (project internal)
+
+### Staking / Sale / Vesting
+- `StakingModule.sol` — staking module (project internal)
+- `PhasedTokenSale.sol` — phased token sale module (project internal)
+- `TeamVesting.sol` — vesting module (project internal)
+
+### Governance / DAO
+- `DAOModule.sol` — DAO module interface/base
+- `DAOModuleImplementation.sol` — DAO module implementation
+
+### NFTs / Discounts
+- `IBITINFT.sol` — NFT contract
+- `NFTDiscount.sol` — discount logic linked to NFT usage (project internal)
+- `NFTSaleManager.sol` — NFT sale manager (project internal)
+
+### Referral / Promo
+- `IBITIReferralPromoRouterCashUUPS.sol` — referral/promo router (UUPS pattern)
+
+### Utilities / Status / Bridge
+- `UserStatusManager.sol` — user status registry module (project internal)
+- `BridgeManager.sol` — bridge/expansion manager (project internal)
+
+### Oracles / Interfaces / Mocks
+- `VolumeWeightedOracle.sol` — oracle utility (project internal)
+- `AggregatorV3Interface.sol` — Chainlink aggregator interface
+- `IUniswapV2Pair.sol` — UniswapV2 pair interface (also used by PancakeSwap v2 forks)
+- `ERC20Mock.sol` — test/mock ERC20
+
+> Notes:
+> - “project internal” means the contract is part of the IBITIcoin system (not a third-party library).
+> - Interfaces/mocks are included for integration/testing convenience.
 
 ---
 
-## 📄 Documentation
+## Local Development (Hardhat)
 
-The following documents are included directly in this repository:
+### Prerequisites
+- Node.js (LTS recommended)
+- npm (or yarn)
 
-- **Whitepaper (EN)**  
-  `IBITIcoin_whitepaper_EN.pdf`
-
-- **Business Plan (EN)**  
-  `IBITI_Business_Plan_v3.0_EN.pdf`
-
-- **Token Schedule & Vesting**  
-  `Token Schedule & Vesting.pdf`
-
----
-
-## ⚙️ Development & Tooling
-
-### Installation
-
+### Install
 ```bash
 npm install
-Compile contracts
+Compile
 bash
 Копировать код
 npx hardhat compile
-Deploy (example)
+Configure Environment
+Create .env from .env.example and set your RPC URLs, private keys, and any required addresses.
+
+Never commit your .env.
+
+Deployment & Verification
+Scripts included in scripts/:
+
+deploy-mainnet.js — deployment script
+
+verify-mainnet.js — verification script
+
+Example usage:
+
 bash
 Копировать код
 npx hardhat run scripts/deploy-mainnet.js --network bsc
-Environment
-Create a .env file based on .env.example and configure RPC endpoints,
-wallets and deployed contract addresses.
+npx hardhat run scripts/verify-mainnet.js --network bsc
+Documentation
+Included in repo root:
 
-🌐 Official Links
+IBITIcoin_whitepaper_EN.pdf
+
+IBITI_Business_Plan_v3.0_EN.pdf
+
+Token Schedule & Vesting.pdf
+
+Website docs:
+
+https://www.ibiticoin.com/whitepaper.html
+
+Security
+Admins will never DM you first.
+
+Always verify links from official sources only.
+
+If you find a potential vulnerability or critical issue, please contact the team via the official website contact channels.
+
+License
+MIT License — see LICENSE.md.
+
+Official Links
 Website: https://www.ibiticoin.com
+
+Whitepaper (EN): https://www.ibiticoin.com/whitepaper.html
 
 Telegram: https://t.me/IBITIcoin_chat
 
@@ -147,7 +173,3 @@ X (Twitter): https://x.com/ibiticoin
 Facebook Group: https://www.facebook.com/groups/ibiticoin
 
 LinkedIn: https://www.linkedin.com/in/ibiticoin
-
-📄 License
-This project is released under the MIT License.
-See LICENSE.md for details.
