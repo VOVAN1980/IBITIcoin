@@ -51,8 +51,10 @@ Holders can burn their own tokens.
 | Team vesting | [`0xC4bdF5b6d7688a7d5457A194ac1210ec34003604`](https://bscscan.com/address/0xC4bdF5b6d7688a7d5457A194ac1210ec34003604) |
 | Website sale | [`0x42924EE213eF1943BE655c2C535FB72F52C64781`](https://bscscan.com/address/0x42924EE213eF1943BE655c2C535FB72F52C64781) |
 | Staking | [`0x509e0CeaA5840304D2f33bC43e66Fa27ECDc0348`](https://bscscan.com/address/0x509e0CeaA5840304D2f33bC43e66Fa27ECDc0348) |
+| NFT collection | [`0x771Ad1baef4b7321F10F2549b6C1Bc34106120Ed`](https://bscscan.com/address/0x771Ad1baef4b7321F10F2549b6C1Bc34106120Ed) |
+| NFT sale | [`0x92CFE8c739e6A1bE9bbc2971E5A7ba6747fccA1f`](https://bscscan.com/address/0x92CFE8c739e6A1bE9bbc2971E5A7ba6747fccA1f) |
 
-NFT and other modules are separate contracts. They are added here as they are deployed.
+Other modules are separate contracts. They are added here as they are deployed.
 
 ### Distribution at deployment
 
@@ -112,7 +114,20 @@ Lock IBITI for 1 to 12 months for a reward known in advance, from 1% to 30% of t
 
 Rewards come from a pool on the contract, funded by plain transfers. The reward is reserved when you stake, so one user's stake never pays another user's reward. When the pool runs out, new stakes are refused.
 Penalties and lost rewards stay in the pool, and the owner can withdraw its free part. Stakes and reserved rewards are out of the owner's reach. A pause stops new stakes and renewals; withdrawing always stays open.
-The NFT contract is not deployed yet: it binds once, and until then stakers receive tokens but not NFTs.
+Reward NFTs come from `IBITICollection`, which the staking contract binds once. A failed NFT mint never blocks the tokens.
+
+### `IBITICollection.sol`
+
+The Path of Humanity: 11 cards from the story told in our book. An NFT stays with its holder for good: there is no expiry, no burn and no pause, and the owner cannot take or freeze it.
+Each card has its own edition, which can be lowered but never raised. New cards can be added later. It is a collectible: it gives no discount, no income and no share in the project.
+A resale on a marketplace that honours ERC-2981 pays 5% to the reserve wallet; the owner can change this, up to 10%.
+
+A stake of 3, 6, 9 or 12 months held to the end earns 2 cards as a bonus: Awakening for 3 months, The First Gods and Kings for 6, Enlightenment for 9, The Age of Darkness and Faith for 12. They come out of the same edition as the cards on sale and can be kept or sold. If the edition has run out, the staking contract pays the tokens without the NFT.
+
+### `IBITINFTSale.sol`
+
+Sale of the cards for USDT at any time, while the edition lasts. USDT goes straight to the reserve wallet and never stays on the contract.
+A buyer passes the price they saw, so a purchase at a different price is rejected. The sale is a separate contract, so it can be replaced without touching the collection.
 
 ### `testnet/TestUSDT.sol`, `testnet/MockJackpotNFT.sol`
 

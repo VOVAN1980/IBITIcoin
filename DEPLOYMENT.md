@@ -66,6 +66,14 @@ npm run verify:mainnet
 
 ---
 
+## NFT collection
+
+`scripts/09-deploy-nft.js` deploys `IBITICollection` with no cards and `IBITINFTSale` paused. The journal is `deployments/<network>.nft.json`.
+`scripts/10-setup-nft.js` adds the cards from `scripts/lib/nft-cards.js`, sets the prices, grants the roles, binds the collection to staking once and for all, and opens the sale.
+Steps that are already done are skipped, so an interrupted run can be repeated.
+
+---
+
 ## Liquidity
 
 `scripts/04-add-liquidity.js` adds IBITI/USDT liquidity on PancakeSwap V2. It approves the exact amounts and resets both
@@ -76,5 +84,5 @@ allowances to zero afterwards, including when adding liquidity fails.
 ## Testnet
 
 The same scripts run on `bscTestnet`. Testnet uses its own USDT with 18 decimals, deployed by `scripts/testnet-usdt.js`,
-because the real USDT on BSC has 18 decimals. `scripts/testnet-vesting-check.js`, `scripts/testnet-promo-check.js` and
-`scripts/testnet-staking-check.js` run the vesting, the sale and staking end to end.
+because the real USDT on BSC has 18 decimals. `scripts/testnet-vesting-check.js`, `scripts/testnet-promo-check.js`,
+`scripts/testnet-staking-check.js` and `scripts/testnet-nft-check.js` run the vesting, the sale, staking and the NFT collection end to end.

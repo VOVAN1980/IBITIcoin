@@ -1,0 +1,27 @@
+{
+  "network": "bsc",
+  "chainId": 56,
+  "deployer": "0x1841DE9b1c8bF5244675896b0F4FF96C9331596f",
+  "status": "complete",
+  "owner": "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41",
+  "usdt": "0x55d398326f99059fF775485246999027B3197955",
+  "reserve": "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41",
+  "collection": {
+    "address": "0x771Ad1baef4b7321F10F2549b6C1Bc34106120Ed",
+    "tx": "0x128953fe0b7521786dee8ed2f8449b4cd01d0829fcaa64f39dd41e662be9def3",
+    "args": [
+      "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41",
+      "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41"
+    ]
+  },
+  "sale": {
+    "address": "0x92CFE8c739e6A1bE9bbc2971E5A7ba6747fccA1f",
+    "tx": "0x9395d228f261b3fd4be1116bc9e0609074539d9cd76f0c057577730ac325340b",
+    "args": [
+      "0x55d398326f99059fF775485246999027B3197955",
+      "0x771Ad1baef4b7321F10F2549b6C1Bc34106120Ed",
+      "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41",
+      "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41"
+    ]
+  }
+}
