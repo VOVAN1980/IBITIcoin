@@ -40,12 +40,10 @@ It is intended for developers, integrators, and auditors who want to review the 
 - **Decimals:** 8
 - **Max supply:** 100,000,000 IBITI
 
-**Mainnet token address**
-- `0x47F2FFCb164b2EeCCfb7eC436Dfb3637a457B9bb`
-
-**Primary DEX**
-- PancakeSwap (IBITI / USDT)  
-  https://pancakeswap.finance/swap?chain=bsc&outputCurrency=0x47F2FFCb164b2EeCCfb7eC436Dfb3637a457B9bb&inputCurrency=0x55d398326f99059fF775485246999027B3197955
+**Mainnet addresses**
+- Token: `0x71b552D3503fe20610aaA470A96E1838fae8381A`
+- Team vesting: `0xC4bdF5b6d7688a7d5457A194ac1210ec34003604`
+- Website sale: `0x42924EE213eF1943BE655c2C535FB72F52C64781`
 
 ---
 
