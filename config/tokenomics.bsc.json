@@ -1,0 +1,23 @@
+{
+  "_note": "MAINNET. 70 / 20 / 10. Держатели V1 вычитаются из 20 млн. Деплой не пройдёт, пока holders.status не CONFIRMED.",
+  "allocations": [
+    { "role": "liquidity", "label": "Ликвидность, биржи, площадки", "to": "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5", "amount": "70000000" },
+    { "role": "marketing", "label": "Маркетинг и резерв", "to": "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41", "amount": "20000000" },
+    {
+      "role": "vesting",
+      "label": "Вестинг: команда или инвестор",
+      "amount": "10000000",
+      "vesting": { "owner": "0x1841DE9b1c8bF5244675896b0F4FF96C9331596f", "startDate": "DEPLOY" }
+    }
+  ],
+  "holders": {
+    "status": "CONFIRMED",
+    "_note": "Проверено по всей истории V1: 41 перевод, расхождений с сетью 0. Владелец подтвердил все четыре адреса 01.11.2026.",
+    "list": [
+      { "to": "0x8ee2f9f3f0a0f50ab56846a6b7bf1a2084621a5c", "amount": "88.57806041" },
+      { "to": "0x3e25a6d8ea2066fce3cc789d86e8f72cb3ccc0ab", "amount": "4.76854739" },
+      { "to": "0x8737a10d9c19af8bb2eae0b5e9cfe7b7276e0638", "amount": "0.09962577" },
+      { "to": "0xa2bd166173925e5b8e640f091b0f3becbbbe15f8", "amount": "10.57023723" }
+    ]
+  }
+}

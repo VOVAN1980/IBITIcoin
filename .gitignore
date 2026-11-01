@@ -1,22 +1,25 @@
 # Node
 node_modules/
-package-lock.json
 
 # Hardhat build
 artifacts/
 cache/
 coverage/
+coverage.json
+typechain-types/
 
-# Flattened output
-flattened.sol
+# Local script runs
+deployments/localhost.json
+deployments/hardhat.json
 
-# Env files (секреты)
+# Secrets
 .env
+.env.*
+!.env.example
+*.key
+*.pem
 
-# VS Code / OS / Logs
+# Editors, OS, logs
 *.log
 .DS_Store
 .vscode/
-
-# Optional: Output of other tools
-typechain/

@@ -4,130 +4,73 @@ require("@nomicfoundation/hardhat-ethers");
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@nomicfoundation/hardhat-ledger");
 require("@nomicfoundation/hardhat-verify");
-
-require("hardhat-contract-sizer");
-require("hardhat-gas-reporter");
 require("solidity-coverage");
 
 const {
-  BSC_ARCHIVE_RPC_URL,
-  BSC_RPC_URL,
   BSC_MAINNET_RPC_URL,
-  PRIVATE_KEY,
-  FOUNDER_WALLET,
+  BSC_RPC_URL, // это testnet
+  DEPLOYER_LEDGER,
+  LIQUIDITY_LEDGER,
+  TESTNET_LEDGER,
   RESERVE_WALLET,
-  BSC_MAINNET_GAS_PRICE,
-  ETHERSCAN_V2_KEY,          // ← новый ключ API V2
+  PRIVATE_KEY, // только testnet
+  ETHERSCAN_V2_KEY,
+  FORK_RPC_URL,
+  FORK_BLOCK,
 } = process.env;
 
 /** @type import("hardhat/config").HardhatUserConfig */
 module.exports = {
-  defaultNetwork: "hardhat",
-
-  paths: {
-    sources: "./contracts",
-    tests: "./test",
-    cache: "./cache",
-    artifacts: "./artifacts",
-  },
-
   solidity: {
     version: "0.8.22",
-    settings: {
-      optimizer: { enabled: true, runs: 1 },
-      metadata: { bytecodeHash: "none" },
-      viaIR: true,
-      outputSelection: {
-        "*": {
-          "*": [
-            "abi",
-            "evm.bytecode",
-            "evm.deployedBytecode",
-            "storageLayout",
-          ],
-        },
-      },
-    },
+    settings: { optimizer: { enabled: true, runs: 200 } },
   },
-
-  // ──────────────────────────────────────────
-  //                 NETWORKS
-  // ──────────────────────────────────────────
 
   networks: {
+    // Обычные тесты — чистая локальная сеть. Форк BSC только если задан FORK_RPC_URL.
+    // Без архивного RPC укажите FORK_BLOCK = свежий номер блока: обычные узлы старое состояние не хранят.
+    // hardhat node подставляет газ = лимиту блока; по умолчанию это 30M,
+    // а лимит одной транзакции (EIP-7825) — 16 777 216. Только для локальной ноды.
     hardhat: {
-      chainId: 56,
-      allowUnlimitedContractSize: true,
-      forking: {
-        url: BSC_ARCHIVE_RPC_URL || "",
-      },
+      blockGasLimit: 16_777_216,
+      ...(FORK_RPC_URL
+        ? { forking: { url: FORK_RPC_URL, ...(FORK_BLOCK ? { blockNumber: Number(FORK_BLOCK) } : {}) } }
+        : {}),
     },
 
-    localhost: {
-      url: "http://127.0.0.1:8545",
-    },
-
-    // Testnet через PRIVATE_KEY
+    // Testnet: одноразовый ключ, если задан, иначе тот же Ledger
     bscTestnet: {
-      url: BSC_RPC_URL || "",
+      url: BSC_RPC_URL || "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
       chainId: 97,
-      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
-      gasPrice: 1_000_000_000,
+      ...(PRIVATE_KEY
+        ? { accounts: [PRIVATE_KEY] }
+        : { ledgerAccounts: TESTNET_LEDGER || DEPLOYER_LEDGER ? [TESTNET_LEDGER || DEPLOYER_LEDGER] : [] }),
     },
 
-    // Mainnet через Ledger (FOUNDER)
-bsc: {
-  url: BSC_MAINNET_RPC_URL || "",
-  chainId: 56,
-  ledgerAccounts: FOUNDER_WALLET ? [FOUNDER_WALLET] : [],
-  gasPrice: BSC_MAINNET_GAS_PRICE
-    ? parseInt(BSC_MAINNET_GAS_PRICE, 10)
-    : 5_000_000_000,
-},
+    // Mainnet: подпись только на Ledger
+    bsc: {
+      url: BSC_MAINNET_RPC_URL || "https://bsc-dataseed.bnbchain.org",
+      chainId: 56,
+      ledgerAccounts: DEPLOYER_LEDGER ? [DEPLOYER_LEDGER] : [],
+    },
 
-// Mainnet через Ledger (RESERVE)  ✅ ДЛЯ ЛИКВИДНОСТИ
-bscReserve: {
-  url: BSC_MAINNET_RPC_URL || "",
-  chainId: 56,
-  ledgerAccounts: RESERVE_WALLET ? [RESERVE_WALLET] : [],
-  gasPrice: BSC_MAINNET_GAS_PRICE
-    ? parseInt(BSC_MAINNET_GAS_PRICE, 10)
-    : 5_000_000_000,
-   },
+    // Mainnet, Ledger Основной: запас и управление контрактом сайта
+    bscReserve: {
+      url: BSC_MAINNET_RPC_URL || "https://bsc-dataseed.bnbchain.org",
+      chainId: 56,
+      ledgerAccounts: RESERVE_WALLET ? [RESERVE_WALLET] : [],
+    },
+
+    // Mainnet, кошелёк ликвидности: только scripts/04-add-liquidity.js
+    bscLiquidity: {
+      url: BSC_MAINNET_RPC_URL || "https://bsc-dataseed.bnbchain.org",
+      chainId: 56,
+      ledgerAccounts: LIQUIDITY_LEDGER ? [LIQUIDITY_LEDGER] : [],
+    },
   },
 
-  // ──────────────────────────────────────────
-  //            ETHERSCAN API V2
-  // ──────────────────────────────────────────
-  etherscan: {
-    apiKey: ETHERSCAN_V2_KEY,   // <-- новый единый ключ
-    customChains: [
-      {
-        network: "bsc",
-        chainId: 56,
-        urls: {
-          apiURL: "https://api.bscscan.com/api",
-          browserURL: "https://bscscan.com",
-        },
-      },
-      {
-        network: "bscTestnet",
-        chainId: 97,
-        urls: {
-          apiURL: "https://api-testnet.bscscan.com/api",
-          browserURL: "https://testnet.bscscan.com",
-        },
-      },
-    ],
-  },
+  // Etherscan API v2: один ключ на все сети
+  etherscan: { apiKey: ETHERSCAN_V2_KEY },
 
-  gasReporter: {
-    enabled: process.env.REPORT_GAS === "true",
-    currency: "USD",
-    gasPrice: 21,
-  },
-
-  mocha: {
-    timeout: 200000,
-  },
+  mocha: { timeout: 300000 },
 };

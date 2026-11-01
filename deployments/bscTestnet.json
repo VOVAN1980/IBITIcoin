@@ -1,0 +1,54 @@
+{
+  "network": "bscTestnet",
+  "chainId": 97,
+  "deployer": "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+  "status": "complete",
+  "distribution": [
+    {
+      "role": "liquidity",
+      "label": "Ликвидность, биржи, площадки",
+      "to": "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+      "amount": "7000000000000000"
+    },
+    {
+      "role": "marketing",
+      "label": "Маркетинг и резерв",
+      "to": "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+      "amount": "2000000000000000"
+    },
+    {
+      "role": "vesting",
+      "label": "Вестинг: команда или инвестор",
+      "to": "0x476E60386ed169063a65bA563ca0DcFd66530cEB",
+      "amount": "1000000000000000"
+    }
+  ],
+  "vesting": {
+    "nonce": 121,
+    "address": "0x476E60386ed169063a65bA563ca0DcFd66530cEB",
+    "args": [
+      "0x4D641C74529B39e3C4Cc996B5b5be47A0B61dD0C",
+      "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+      "1000000000000000",
+      1793548585
+    ],
+    "tx": "0x2bf928e47d7eda702c29f6a7ea44596e9907dfcda833b485660ad4f535dff862"
+  },
+  "token": {
+    "nonce": 122,
+    "address": "0x4D641C74529B39e3C4Cc996B5b5be47A0B61dD0C",
+    "args": [
+      [
+        "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+        "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+        "0x476E60386ed169063a65bA563ca0DcFd66530cEB"
+      ],
+      [
+        "7000000000000000",
+        "2000000000000000",
+        "1000000000000000"
+      ]
+    ],
+    "tx": "0x6ad63857776a0eff5f651b608486e5b9b35c03d68ce267dc1a6fa7250d8eb38e"
+  }
+}

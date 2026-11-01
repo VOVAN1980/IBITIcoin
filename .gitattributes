@@ -1,0 +1,2 @@
+# Contract sources stay byte-exact: line endings change the compiled metadata hash
+contracts/** -text

@@ -1,0 +1,14 @@
+{
+  "_note": "TESTNET. DEPLOYER = кошелёк, с которого идёт деплой. График вестинга тот же, что в mainnet, задан в контракте.",
+  "allocations": [
+    { "role": "liquidity", "label": "Ликвидность, биржи, площадки", "to": "DEPLOYER", "amount": "70000000" },
+    { "role": "marketing", "label": "Маркетинг и резерв", "to": "DEPLOYER", "amount": "20000000" },
+    {
+      "role": "vesting",
+      "label": "Вестинг: команда или инвестор",
+      "amount": "10000000",
+      "vesting": { "owner": "DEPLOYER", "startDate": "DEPLOY" }
+    }
+  ],
+  "holders": { "status": "CONFIRMED", "list": [] }
+}

@@ -1,0 +1,86 @@
+{
+  "network": "bsc",
+  "chainId": 56,
+  "deployer": "0x1841DE9b1c8bF5244675896b0F4FF96C9331596f",
+  "status": "complete",
+  "distribution": [
+    {
+      "role": "liquidity",
+      "label": "Ликвидность, биржи, площадки",
+      "to": "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+      "amount": "7000000000000000"
+    },
+    {
+      "role": "marketing",
+      "label": "Маркетинг и резерв",
+      "to": "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41",
+      "amount": "1999989598352920"
+    },
+    {
+      "role": "vesting",
+      "label": "Вестинг: команда или инвестор",
+      "to": "0xC4bdF5b6d7688a7d5457A194ac1210ec34003604",
+      "amount": "1000000000000000"
+    },
+    {
+      "role": "holder",
+      "label": "Держатель V1",
+      "to": "0x8eE2f9F3f0a0F50ab56846a6B7Bf1a2084621a5c",
+      "amount": "8857806041"
+    },
+    {
+      "role": "holder",
+      "label": "Держатель V1",
+      "to": "0x3E25A6D8eA2066FCE3cc789d86e8f72Cb3CCC0ab",
+      "amount": "476854739"
+    },
+    {
+      "role": "holder",
+      "label": "Держатель V1",
+      "to": "0x8737a10d9c19AF8Bb2EAE0B5E9CFE7B7276e0638",
+      "amount": "9962577"
+    },
+    {
+      "role": "holder",
+      "label": "Держатель V1",
+      "to": "0xA2BD166173925E5b8E640f091b0f3bEcBbBE15f8",
+      "amount": "1057023723"
+    }
+  ],
+  "vesting": {
+    "nonce": 0,
+    "address": "0xC4bdF5b6d7688a7d5457A194ac1210ec34003604",
+    "args": [
+      "0x71b552D3503fe20610aaA470A96E1838fae8381A",
+      "0x1841DE9b1c8bF5244675896b0F4FF96C9331596f",
+      "1000000000000000",
+      1793553110
+    ],
+    "tx": "0xf1d4ffbbe297a8836a92d7c97cc0cd2596cd0ff4b5e8c138d4df2a56061949d2"
+  },
+  "token": {
+    "nonce": 1,
+    "address": "0x71b552D3503fe20610aaA470A96E1838fae8381A",
+    "args": [
+      [
+        "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+        "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41",
+        "0xC4bdF5b6d7688a7d5457A194ac1210ec34003604",
+        "0x8eE2f9F3f0a0F50ab56846a6B7Bf1a2084621a5c",
+        "0x3E25A6D8eA2066FCE3cc789d86e8f72Cb3CCC0ab",
+        "0x8737a10d9c19AF8Bb2EAE0B5E9CFE7B7276e0638",
+        "0xA2BD166173925E5b8E640f091b0f3bEcBbBE15f8"
+      ],
+      [
+        "7000000000000000",
+        "1999989598352920",
+        "1000000000000000",
+        "8857806041",
+        "476854739",
+        "9962577",
+        "1057023723"
+      ]
+    ],
+    "tx": "0xb67c73b1b78969c952cc6602e87ec18f34ba53f7ce99f4beb30ef02a68f7840d"
+  }
+}
