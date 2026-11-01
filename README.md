@@ -115,7 +115,7 @@ Test USDT with 18 decimals, like BSC-USDT. Testnet only.
 - `img/` — brand assets
 - `DEPLOYMENT.md` — deployment order
 - `IBITIcoin_whitepaper_EN.pdf` — whitepaper (EN)
-- `IBITI_Business_Plan_v3.0_EN.pdf` — business plan (EN)
+- `IBITI_Business_Plan_v3.1_EN.pdf` — business plan (EN)
 - `Token Schedule & Vesting.pdf` — token schedule
 
 ---
