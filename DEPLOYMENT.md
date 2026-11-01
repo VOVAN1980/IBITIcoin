@@ -58,6 +58,14 @@ npm run verify:mainnet
 
 ---
 
+## Staking
+
+`scripts/07-deploy-staking.js` deploys `IBITIStaking` paused. The journal is `deployments/<network>.staking.json`.
+`scripts/fund-staking.js` sends the reward pool by a plain transfer, with no approval.
+`scripts/08-enable-staking.js` lifts the pause only if the pool, the minimum stake, the window and the reward ladder are correct.
+
+---
+
 ## Liquidity
 
 `scripts/04-add-liquidity.js` adds IBITI/USDT liquidity on PancakeSwap V2. It approves the exact amounts and resets both
@@ -68,5 +76,5 @@ allowances to zero afterwards, including when adding liquidity fails.
 ## Testnet
 
 The same scripts run on `bscTestnet`. Testnet uses its own USDT with 18 decimals, deployed by `scripts/testnet-usdt.js`,
-because the real USDT on BSC has 18 decimals. `scripts/testnet-vesting-check.js` and `scripts/testnet-promo-check.js` run the
-vesting and the sale end to end.
+because the real USDT on BSC has 18 decimals. `scripts/testnet-vesting-check.js`, `scripts/testnet-promo-check.js` and
+`scripts/testnet-staking-check.js` run the vesting, the sale and staking end to end.

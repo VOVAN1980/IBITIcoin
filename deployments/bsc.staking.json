@@ -1,0 +1,13 @@
+{
+  "network": "bsc",
+  "chainId": 56,
+  "deployer": "0x1841DE9b1c8bF5244675896b0F4FF96C9331596f",
+  "status": "complete",
+  "args": [
+    "0x71b552D3503fe20610aaA470A96E1838fae8381A",
+    "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41",
+    "10000000000"
+  ],
+  "address": "0x509e0CeaA5840304D2f33bC43e66Fa27ECDc0348",
+  "tx": "0x10410fb9c669206642bfaa2ae1425377eeefa67ecf9cc08e9137df839f3e2c8f"
+}

@@ -42,6 +42,8 @@ module.exports = {
     bscTestnet: {
       url: BSC_RPC_URL || "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
       chainId: 97,
+      // Минимум цены газа на узлах testnet плавает, автоматическая цена иногда ниже него
+      gasPrice: 1_000_000_000,
       ...(PRIVATE_KEY
         ? { accounts: [PRIVATE_KEY] }
         : { ledgerAccounts: TESTNET_LEDGER || DEPLOYER_LEDGER ? [TESTNET_LEDGER || DEPLOYER_LEDGER] : [] }),

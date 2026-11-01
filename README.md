@@ -50,8 +50,9 @@ Holders can burn their own tokens.
 | IBITI token | [`0x71b552D3503fe20610aaA470A96E1838fae8381A`](https://bscscan.com/address/0x71b552D3503fe20610aaA470A96E1838fae8381A) |
 | Team vesting | [`0xC4bdF5b6d7688a7d5457A194ac1210ec34003604`](https://bscscan.com/address/0xC4bdF5b6d7688a7d5457A194ac1210ec34003604) |
 | Website sale | [`0x42924EE213eF1943BE655c2C535FB72F52C64781`](https://bscscan.com/address/0x42924EE213eF1943BE655c2C535FB72F52C64781) |
+| Staking | [`0x509e0CeaA5840304D2f33bC43e66Fa27ECDc0348`](https://bscscan.com/address/0x509e0CeaA5840304D2f33bC43e66Fa27ECDc0348) |
 
-Staking, NFT and other modules are separate contracts. They are added here as they are deployed.
+NFT and other modules are separate contracts. They are added here as they are deployed.
 
 ### Distribution at deployment
 
@@ -62,7 +63,7 @@ Staking, NFT and other modules are separate contracts. They are added here as th
 | Team vesting contract | 10,000,000 | `0xC4bdF5b6d7688a7d5457A194ac1210ec34003604` |
 | Holders of the previous token | 104.0164708 | 4 addresses, see `config/tokenomics.bsc.json` |
 
-The 1,000,000 IBITI on the website sale contract came from marketing and reserve.
+The 1,000,000 IBITI on the website sale contract and the 1,000,000 IBITI staking reward pool came from marketing and reserve.
 
 ---
 
@@ -99,9 +100,23 @@ IBITI is paid only from the contract's own balance, which is funded by a plain t
 The bonus and referral reward cannot be changed. While the sale is paused, the owner can change the limits, set the price
 between $0.001 and $10, and withdraw unsold IBITI.
 
-### `testnet/TestUSDT.sol`
+### `IBITIStaking.sol`
 
-Test USDT with 18 decimals, like BSC-USDT. Testnet only.
+Lock IBITI for 1 to 12 months for a reward known in advance, from 1% to 30% of the stake. The minimum stake is 100 IBITI.
+
+| When you withdraw | You receive |
+|---|---|
+| Before the term ends | Stake minus a penalty equal to the reward percentage, no reward, no NFT |
+| Within 30 days after the term | Stake, reward and NFTs, or renew with a new amount and term |
+| Later | Stake only, with no time limit; the reward and NFTs are lost |
+
+Rewards come from a pool on the contract, funded by plain transfers. The reward is reserved when you stake, so one user's stake never pays another user's reward. When the pool runs out, new stakes are refused.
+Penalties and lost rewards stay in the pool, and the owner can withdraw its free part. Stakes and reserved rewards are out of the owner's reach. A pause stops new stakes and renewals; withdrawing always stays open.
+The NFT contract is not deployed yet: it binds once, and until then stakers receive tokens but not NFTs.
+
+### `testnet/TestUSDT.sol`, `testnet/MockJackpotNFT.sol`
+
+Test USDT with 18 decimals, like BSC-USDT, and a stand-in for the NFT contract used in tests. Not deployed on mainnet.
 
 ---
 
