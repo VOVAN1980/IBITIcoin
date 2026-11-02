@@ -1,8 +1,8 @@
 // Меняет цену продажи на сайте: пауза, новая цена, снятие паузы. Подпись — владелец контракта: в mainnet Ledger Основной.
-// Цена на сайте = реальная цена × 1.1: с бонусом 10% покупка выходит по цене пула и перекупа нет.
+// Бонус считается от купленного: при цене $0.10 покупатель платит за монету с бонусом около $0.0909.
 // Намеренную паузу не снимает. Если замена прервалась на паузе, повторить с PROMO_OPEN=1.
 // Без CONFIRM_PROMO_PRICE=<chainId> только показывает.
-//   PROMO_PRICE=0.11 npx hardhat run scripts/set-promo-price.js --network bscReserve
+//   PROMO_PRICE=0.10 npx hardhat run scripts/set-promo-price.js --network bscReserve
 const hre = require("hardhat");
 const { ethers, network } = hre;
 const fs = require("fs");

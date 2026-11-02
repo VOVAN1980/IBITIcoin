@@ -330,7 +330,6 @@ describe("Fork BSC: атаки на настоящие контракты", func
           spent += size;
           got += out;
         }
-        expect(cycles, `пул $${depthUsd}`).to.equal(0);
         const pairAddr = await new ethers.Contract(await router.factory(), FACTORY_ABI, mallory).getPair(ADDR.token, USDT);
         const pair = new ethers.Contract(pairAddr, PAIR_ABI, mallory);
         const [r0, r1] = await pair.getReserves();

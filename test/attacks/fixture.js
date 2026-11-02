@@ -22,7 +22,7 @@ async function deployAll() {
   const vesting = await ethers.deployContract("IBITIVesting", [token.target, vestOwner.address, I(10_000_000), await now()]);
   await token.transfer(vesting.target, I(10_000_000));
 
-  const promo = await ethers.deployContract("IBITIPromoSale", [usdt.target, token.target, owner.address, reserve.address, U("0.11"), 1000, I(1), U(10), U(100)]);
+  const promo = await ethers.deployContract("IBITIPromoSale", [usdt.target, token.target, owner.address, reserve.address, U("0.10"), 1000, I(1), U(10), U(100)]);
   await token.transfer(promo.target, I(1_000_000));
   await promo.unpause();
 

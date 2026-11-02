@@ -92,7 +92,7 @@ Website sale of IBITI for USDT at a fixed price. Values set at deployment:
 
 | Parameter | Value |
 |---|---|
-| Price | $0.11 per IBITI ($0.10 with the bonus) |
+| Price | $0.10 per IBITI |
 | Bonus | 10% |
 | Referral reward | 1 IBITI, once per buyer |
 | Purchase limits | 10 to 100 USDT |
