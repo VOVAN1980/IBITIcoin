@@ -7,11 +7,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-
-interface IJackpotNFT {
-    function mintJackpot(address to, uint256 discountPercent, string calldata tokenURI) external;
-}
 
 /**
  * @title IBITIStaking
@@ -21,13 +16,15 @@ interface IJackpotNFT {
  *         Награда резервируется при входе: вклады никогда не платят чужие награды,
  *         а если запас кончился, новые вклады не принимаются.
  *
- *         Выход раньше срока: без награды и NFT, штраф по той же лестнице, что и награда.
- *         30 дней после срока: вклад с наградой и NFT или продление.
- *         Позже: награда и NFT сгорают, вклад лежит без срока, пока человек его не заберёт.
+ *         Выход раньше срока: без награды, штраф по той же лестнице, что и награда.
+ *         30 дней после срока: вклад с наградой или продление.
+ *         Позже: награда сгорает, вклад лежит без срока, пока человек его не заберёт.
  *         Штрафы и сгоревшие награды остаются в запасе; свободный остаток владелец может вывести.
  *
  *         Вклады и зарезервированные награды владельцу недоступны. Пауза останавливает
  *         только новые вклады и продление, выход открыт всегда. Контракт создаётся на паузе.
+ *
+ *         Контракт не обновляется: логику нельзя подменить или дописать. С NFT он не связан.
  */
 contract IBITIStaking is Ownable2Step, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -52,11 +49,9 @@ contract IBITIStaking is Ownable2Step, Pausable, ReentrancyGuard {
 
     IERC20 public immutable token;
 
-    IJackpotNFT public nft;
     uint256 public minStake;
     uint256 public totalStaked;
     uint256 public reservedRewards;
-    uint256 private _nftNonce;
 
     mapping(address => StakeInfo[]) private _stakes;
     mapping(address => uint256) public stakeOf;
@@ -65,9 +60,6 @@ contract IBITIStaking is Ownable2Step, Pausable, ReentrancyGuard {
     event Unstaked(address indexed user, uint256 indexed id, uint256 payout, uint256 reward, uint256 penalty);
     event Renewed(address indexed user, uint256 indexed oldId, uint256 indexed newId, uint256 refunded, uint256 topUp);
     event RewardReleased(address indexed user, uint256 indexed id, uint256 reward);
-    event NFTRewardMinted(address indexed user, uint256 discountPercent);
-    event NFTRewardSkipped(address indexed user, uint256 discountPercent);
-    event NFTSet(address indexed nft);
     event MinStakeUpdated(uint256 minStake);
     event FreeRewardsWithdrawn(address indexed to, uint256 amount);
     event TokenRescued(address indexed token, address indexed to, uint256 amount);
@@ -84,8 +76,6 @@ contract IBITIStaking is Ownable2Step, Pausable, ReentrancyGuard {
     error WindowNotClosed(uint256 id);
     error RewardAlreadyReleased(uint256 id);
     error ExceedsFreeRewards(uint256 amount, uint256 available);
-    error NFTAlreadySet();
-    error NotAContract(address account);
     error RescueIbitiForbidden();
     error RenounceDisabled();
 
@@ -121,20 +111,18 @@ contract IBITIStaking is Ownable2Step, Pausable, ReentrancyGuard {
         uint256 amount = s.amount;
         uint256 reward = st == Status.Claimable ? s.reward : 0;
         uint256 penalty = st == Status.Locked ? (amount * rewardPercent(s.months)) / 100 : 0;
-        uint8 months = s.months;
 
         _close(msg.sender, s);
 
         uint256 payout = amount + reward - penalty;
         token.safeTransfer(msg.sender, payout);
-        if (st == Status.Claimable) _mintRewardNFTs(msg.sender, months);
 
         emit Unstaked(msg.sender, id, payout, reward, penalty);
     }
 
     /**
      * @notice Продлить после срока: новый вклад на newAmount и months месяцев.
-     *         В окне старая награда и NFT достаются человеку, после окна в зачёт идёт только вклад.
+     *         В окне старая награда достаётся человеку, после окна в зачёт идёт только вклад.
      *         Лишнее возвращается на кошелёк, недостающее доплачивается с него (нужен approve на разницу).
      */
     function renew(uint256 id, uint256 newAmount, uint256 months) external nonReentrant whenNotPaused returns (uint256 newId) {
@@ -144,7 +132,6 @@ contract IBITIStaking is Ownable2Step, Pausable, ReentrancyGuard {
 
         uint256 newReward = _checkedReward(newAmount, months);
         uint256 available = s.amount + (st == Status.Claimable ? s.reward : 0);
-        uint8 oldMonths = s.months;
 
         _close(msg.sender, s);
 
@@ -158,7 +145,6 @@ contract IBITIStaking is Ownable2Step, Pausable, ReentrancyGuard {
         uint256 refunded = available > newAmount ? available - newAmount : 0;
         if (topUp != 0) token.safeTransferFrom(msg.sender, address(this), topUp);
         if (refunded != 0) token.safeTransfer(msg.sender, refunded);
-        if (st == Status.Claimable) _mintRewardNFTs(msg.sender, oldMonths);
 
         emit Renewed(msg.sender, id, newId, refunded, topUp);
     }
@@ -236,15 +222,6 @@ contract IBITIStaking is Ownable2Step, Pausable, ReentrancyGuard {
         revert BadMonths(months);
     }
 
-    /// @notice Jackpot NFT за вклад, дошедший до срока.
-    function nftReward(uint256 months) public pure returns (uint256 count, uint256 discountPercent) {
-        if (months == 3) return (2, 3);
-        if (months == 6) return (2, 5);
-        if (months == 9) return (2, 7);
-        if (months == 12) return (2, 10);
-        return (0, 0);
-    }
-
     // ======= Управление =======
 
     function pause() external onlyOwner {
@@ -259,14 +236,6 @@ contract IBITIStaking is Ownable2Step, Pausable, ReentrancyGuard {
         if (minStake_ == 0) revert ZeroAmount();
         minStake = minStake_;
         emit MinStakeUpdated(minStake_);
-    }
-
-    /// @notice Контракт NFT привязывается один раз: его пока нет, поменять потом нельзя.
-    function setNFT(address nft_) external onlyOwner {
-        if (address(nft) != address(0)) revert NFTAlreadySet();
-        if (nft_.code.length == 0) revert NotAContract(nft_);
-        nft = IJackpotNFT(nft_);
-        emit NFTSet(nft_);
     }
 
     /// @notice Вывести свободный остаток запаса. Вклады и обещанные награды недоступны.
@@ -330,30 +299,5 @@ contract IBITIStaking is Ownable2Step, Pausable, ReentrancyGuard {
         if (block.timestamp < maturity) return Status.Locked;
         if (block.timestamp <= maturity + CLAIM_WINDOW) return Status.Claimable;
         return Status.Expired;
-    }
-
-    /// @dev Сбой NFT не должен мешать забрать токены: нет контракта или ошибка — только событие.
-    function _mintRewardNFTs(address user, uint256 months) private {
-        (uint256 count, uint256 discount) = nftReward(months);
-        for (uint256 i; i < count; ++i) {
-            if (address(nft) == address(0)) {
-                emit NFTRewardSkipped(user, discount);
-                continue;
-            }
-            uint256 nonce = _nftNonce++;
-            string memory uri = string.concat(
-                "ipfs://defaultRewardMetadata.json#",
-                Strings.toString(block.timestamp),
-                "#",
-                Strings.toHexString(user),
-                "#",
-                Strings.toString(nonce)
-            );
-            try nft.mintJackpot(user, discount, uri) {
-                emit NFTRewardMinted(user, discount);
-            } catch {
-                emit NFTRewardSkipped(user, discount);
-            }
-        }
     }
 }

@@ -60,14 +60,15 @@ async function run() {
   }
 
   console.log("\nВыданные права за всю историю:");
-  const nftAbi = new ethers.Interface(["event SellerSet(address indexed account, bool enabled)", "event JackpotMinterSet(address indexed account, bool enabled)"]);
-  for (const ev of ["SellerSet", "JackpotMinterSet"]) {
-    const l = await logs(p, nftJ.collection.address, [nftAbi.getEvent(ev).topicHash], from, latest);
-    for (const x of l) {
-      const a = nftAbi.parseLog(x).args;
-      console.log(`  коллекция ${ev}: ${name(a.account)} = ${a.enabled}`);
-      if (a.enabled && !CONTRACTS[ethers.getAddress(a.account)]) problems.push(`право ${ev} у постороннего ${a.account}`);
-    }
+  const seller = await new ethers.Contract(nftJ.collection.address, ["function seller() view returns (address)"], p).seller();
+  console.log(`  коллекция, единственный выпускающий: ${name(seller)}`);
+  if (seller !== nftJ.sale.address) problems.push(`коллекция: выпускает не наша продажа, а ${seller}`);
+  const saleCollection = await new ethers.Contract(nftJ.sale.address, ["function collection() view returns (address)"], p).collection();
+  if (saleCollection !== nftJ.collection.address) problems.push(`продажа работает с другой коллекцией: ${saleCollection}`);
+  // Контракты не обновляются: слот реализации ERC-1967 у них должен быть пуст
+  const SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+  for (const [address, label] of Object.entries(CONTRACTS)) {
+    if ((await p.getStorage(address, SLOT)) !== ethers.ZeroHash) problems.push(`${label}: найден адрес реализации, контракт обновляемый`);
   }
   const members = await logs(p, main.vesting.address, [ethers.id("MemberAdded(address)")], from, latest);
   console.log(`  вестинг, участников команды добавлено: ${members.length}`);

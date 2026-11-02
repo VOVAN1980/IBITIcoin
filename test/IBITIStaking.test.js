@@ -15,7 +15,7 @@ const mineAt = async (ts) => {
 };
 
 describe("IBITIStaking — стейкинг с запасом наград на контракте", function () {
-  let token, staking, nft, owner, alice, bob, stranger, wallet;
+  let token, staking, owner, alice, bob, stranger, wallet;
 
   const deployStaking = async (min = I(100), fund = I(1_000_000)) => {
     const c = await ethers.deployContract("IBITIStaking", [token.target, owner.address, min]);
@@ -45,7 +45,6 @@ describe("IBITIStaking — стейкинг с запасом наград на 
     await token.transfer(alice.address, I(2_000_000));
     await token.transfer(bob.address, I(2_000_000));
     staking = await deployStaking();
-    nft = await ethers.deployContract("MockJackpotNFT");
   });
 
   describe("расчёт", function () {
@@ -53,15 +52,6 @@ describe("IBITIStaking — стейкинг с запасом наград на 
       for (let m = 1; m <= 12; m++) expect(await staking.rewardPercent(m)).to.equal(BigInt(LADDER[m - 1]));
       await expect(staking.rewardPercent(0)).to.be.revertedWithCustomError(staking, "BadMonths");
       await expect(staking.rewardPercent(13)).to.be.revertedWithCustomError(staking, "BadMonths");
-    });
-
-    it("NFT за 3/6/9/12 месяцев, за остальные нет", async () => {
-      const want = { 3: 3n, 6: 5n, 9: 7n, 12: 10n };
-      for (let m = 1; m <= 12; m++) {
-        const [count, discount] = await staking.nftReward(m);
-        expect(count).to.equal(want[m] ? 2n : 0n);
-        expect(discount).to.equal(want[m] || 0n);
-      }
     });
 
     it("1 / 1 000 / 1 000 000 IBITI на 1, 3, 12 месяцев: в срок и досрочно, настоящие выплаты", async () => {
@@ -173,16 +163,28 @@ describe("IBITIStaking — стейкинг с запасом наград на 
       return { id, maturity: await staking.maturityOf(alice.address, id) };
     };
 
-    it("досрочно: штраф по лестнице, без награды и NFT; штраф и резерв уходят в запас", async () => {
-      await staking.setNFT(nft.target);
+    it("досрочно: штраф по лестнице, без награды; штраф и резерв уходят в запас", async () => {
       const freeBefore = await staking.freeRewards();
       const { id } = await stakeAlice();
       expect(await balanceDelta(alice, () => staking.connect(alice).unstake(id))).to.equal(I(700));
-      expect(await nft.mintCount()).to.equal(0n);
       expect(await staking.reservedRewards()).to.equal(0n);
       expect(await staking.totalStaked()).to.equal(0n);
       expect(await staking.freeRewards()).to.equal(freeBefore + I(300));
       await expectBooksBalanced();
+    });
+
+    it("штраф платит награды следующих вкладов: без него второго вклада не приняли бы", async () => {
+      const c = await deployStaking(I(100), I(300));
+      await c.connect(alice).stake(I(1_000), 12);
+      await expect(c.connect(bob).stake(I(2_000), 12)).to.be.revertedWithCustomError(c, "RewardPoolExhausted");
+      expect(await balanceDelta(alice, () => c.connect(alice).unstake(0))).to.equal(I(700));
+      expect(await c.freeRewards()).to.equal(I(600));
+
+      await c.connect(bob).stake(I(2_000), 12);
+      expect(await c.freeRewards()).to.equal(0n);
+      await nextTxAt(await c.maturityOf(bob.address, 0));
+      expect(await balanceDelta(bob, () => c.connect(bob).unstake(0))).to.equal(I(2_600));
+      expect(await token.balanceOf(c.target)).to.equal(0n);
     });
 
     it("штраф одинаковый: на следующий день и за секунду до срока", async () => {
@@ -195,29 +197,22 @@ describe("IBITIStaking — стейкинг с запасом наград на 
       expect(await balanceDelta(alice, () => staking.connect(alice).unstake(b.id))).to.equal(I(700));
     });
 
-    it("ровно в срок и в последнюю секунду окна: вклад, награда и NFT", async () => {
-      await staking.setNFT(nft.target);
+    it("ровно в срок и в последнюю секунду окна: вклад и награда", async () => {
       const a = await stakeAlice();
       await nextTxAt(a.maturity);
       expect(await balanceDelta(alice, () => staking.connect(alice).unstake(a.id))).to.equal(I(1_300));
-      expect(await nft.mintCount()).to.equal(2n);
 
       const b = await stakeAlice();
       await nextTxAt(b.maturity + BigInt(WINDOW));
       expect(await balanceDelta(alice, () => staking.connect(alice).unstake(b.id))).to.equal(I(1_300));
-      expect(await nft.mintCount()).to.equal(4n);
-      expect((await nft.mints(0)).discountPercent).to.equal(10n);
-      expect((await nft.mints(0)).to).to.equal(alice.address);
       await expectBooksBalanced();
     });
 
-    it("секунда после окна: только вклад, награда и NFT сгорают и остаются в запасе", async () => {
-      await staking.setNFT(nft.target);
+    it("секунда после окна: только вклад, награда сгорает и остаётся в запасе", async () => {
       const freeBefore = await staking.freeRewards();
       const a = await stakeAlice();
       await nextTxAt(a.maturity + BigInt(WINDOW) + 1n);
       expect(await balanceDelta(alice, () => staking.connect(alice).unstake(a.id))).to.equal(I(1_000));
-      expect(await nft.mintCount()).to.equal(0n);
       expect(await staking.freeRewards()).to.equal(freeBefore);
       expect(await staking.reservedRewards()).to.equal(0n);
       await expectBooksBalanced();
@@ -322,11 +317,9 @@ describe("IBITIStaking — стейкинг с запасом наград на 
       await expect(staking.connect(alice).renew(0, I(1_000), 12)).to.be.revertedWithCustomError(staking, "StakeStillLocked");
     });
 
-    it("в окне, вся сумма с наградой: кошелёк не меняется, NFT выданы, новая награда от 1 300", async () => {
-      await staking.setNFT(nft.target);
+    it("в окне, вся сумма с наградой: кошелёк не меняется, новая награда от 1 300", async () => {
       await nextTxAt(maturity);
       expect(await balanceDelta(alice, () => staking.connect(alice).renew(0, I(1_300), 12))).to.equal(0n);
-      expect(await nft.mintCount()).to.equal(2n);
 
       const s = await staking.stakeInfo(alice.address, 1);
       expect(s.amount).to.equal(I(1_300));
@@ -352,12 +345,10 @@ describe("IBITIStaking — стейкинг с запасом наград на 
       await expectBooksBalanced();
     });
 
-    it("после окна в зачёт идёт только вклад, награда и NFT сгорели", async () => {
-      await staking.setNFT(nft.target);
+    it("после окна в зачёт идёт только вклад, награда сгорела", async () => {
       const free = await staking.freeRewards();
       await nextTxAt(maturity + BigInt(WINDOW) + 1n);
       expect(await balanceDelta(alice, () => staking.connect(alice).renew(0, I(1_000), 1))).to.equal(0n);
-      expect(await nft.mintCount()).to.equal(0n);
       expect(await staking.reservedRewards()).to.equal(I(10));
       expect(await staking.freeRewards()).to.equal(free + I(300) - I(10));
       await expectBooksBalanced();
@@ -401,49 +392,6 @@ describe("IBITIStaking — стейкинг с запасом наград на 
     it("чужой вклад продлить нельзя", async () => {
       await mineAt(maturity);
       await expect(staking.connect(bob).renew(0, I(1_000), 1)).to.be.revertedWithCustomError(staking, "BadStakeId");
-    });
-  });
-
-  describe("NFT", function () {
-    beforeEach(async () => {
-      await staking.connect(alice).stake(I(1_000), 12);
-    });
-
-    it("NFT не привязан: токены приходят, в событии видно, что NFT не выдан", async () => {
-      await nextTxAt(await staking.maturityOf(alice.address, 0));
-      await expect(staking.connect(alice).unstake(0))
-        .to.emit(staking, "NFTRewardSkipped").withArgs(alice.address, 10n);
-      expect(await token.balanceOf(staking.target)).to.equal(I(1_000_000) - I(300));
-    });
-
-    it("контракт NFT упал: токены всё равно приходят", async () => {
-      await staking.setNFT(nft.target);
-      await nft.setFailing(true);
-      await nextTxAt(await staking.maturityOf(alice.address, 0));
-      expect(await balanceDelta(alice, () => staking.connect(alice).unstake(0))).to.equal(I(1_300));
-      expect(await nft.mintCount()).to.equal(0n);
-    });
-
-    it("за вклад без NFT по лестнице ничего не выдаётся", async () => {
-      await staking.setNFT(nft.target);
-      await staking.connect(alice).stake(I(1_000), 1);
-      await nextTxAt(await staking.maturityOf(alice.address, 1));
-      await staking.connect(alice).unstake(1);
-      expect(await nft.mintCount()).to.equal(0n);
-    });
-
-    it("адреса NFT не повторяются при выдаче в один блок", async () => {
-      await staking.setNFT(nft.target);
-      await nextTxAt(await staking.maturityOf(alice.address, 0));
-      await staking.connect(alice).unstake(0);
-      expect((await nft.mints(0)).uri).to.not.equal((await nft.mints(1)).uri);
-    });
-
-    it("привязать можно один раз и только контракт", async () => {
-      await expect(staking.setNFT(stranger.address)).to.be.revertedWithCustomError(staking, "NotAContract");
-      await expect(staking.connect(stranger).setNFT(nft.target)).to.be.revertedWith("Ownable: caller is not the owner");
-      await staking.setNFT(nft.target);
-      await expect(staking.setNFT(nft.target)).to.be.revertedWithCustomError(staking, "NFTAlreadySet");
     });
   });
 
@@ -516,9 +464,9 @@ describe("IBITIStaking — стейкинг с запасом наград на 
       const names = [...new Set(staking.interface.fragments.filter((f) => f.type === "function").map((f) => f.name))].sort();
       expect(names).to.deep.equal([
         "CLAIM_WINDOW", "IBITI_DECIMALS", "SECONDS_PER_MONTH", "acceptOwnership", "freeRewards", "maturityOf",
-        "minStake", "nft", "nftReward", "owner", "pause", "paused", "pendingOwner", "quoteReward", "quoteUnstake",
+        "minStake", "owner", "pause", "paused", "pendingOwner", "quoteReward", "quoteUnstake",
         "releaseExpired", "renew", "renounceOwnership", "rescueToken", "reservedRewards", "rewardPercent", "setMinStake",
-        "setNFT", "stake", "stakeCount", "stakeInfo", "stakeOf", "statusOf", "token", "totalStaked", "transferOwnership",
+        "stake", "stakeCount", "stakeInfo", "stakeOf", "statusOf", "token", "totalStaked", "transferOwnership",
         "unpause", "unstake", "withdrawFreeRewards",
       ].sort());
     });

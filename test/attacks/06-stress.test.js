@@ -110,7 +110,7 @@ describe("Атаки: случайные серии", function () {
           if (ref === u.address) expect(await c.promo.referralUsed(u.address)).to.equal(used);
         }
       } else if (action === 3) {
-        await c.staking.connect(u).stake(I(100), [3, 6, 9, 12][r.int(4)]).catch(() => {});
+        await c.staking.connect(u).stake(I(2_500), [3, 4, 5][r.int(3)]).catch(() => {});
       } else if (action === 4) {
         const n = await c.staking.stakeCount(u.address);
         if (n > 0n) await c.staking.connect(u).unstake(r.big(n)).catch(() => {});

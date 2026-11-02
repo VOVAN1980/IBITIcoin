@@ -1,7 +1,7 @@
 // NFT: получить карточку без оплаты, выпустить сверх тиража, подменить продажу, забрать чужую.
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { deployAll, I, U, MONTH, nextTxAt } = require("./fixture");
+const { deployAll, I, U } = require("./fixture");
 
 describe("Атаки: коллекция и продажа NFT", function () {
   let c;
@@ -19,10 +19,8 @@ describe("Атаки: коллекция и продажа NFT", function () {
   it("выпуск мимо продажи: напрямую, через поддельный контракт, от имени владельца", async () => {
     await expect(c.nft.connect(c.mallory).mint(c.mallory.address, 11)).to.be.revertedWithCustomError(c.nft, "NotSeller");
     await expect(c.nft.connect(c.owner).mint(c.owner.address, 11)).to.be.revertedWithCustomError(c.nft, "NotSeller");
-    await expect(c.nft.connect(c.mallory).mintJackpot(c.mallory.address, 10, "")).to.be.revertedWithCustomError(c.nft, "NotJackpotMinter");
     const bot = await ethers.deployContract("AttackerBot");
     await expect(bot.exec(c.nft.target, c.nft.interface.encodeFunctionData("mint", [bot.target, 11]))).to.be.revertedWithCustomError(c.nft, "NotSeller");
-    await expect(bot.exec(c.nft.target, c.nft.interface.encodeFunctionData("mintJackpot", [bot.target, 10, ""]))).to.be.revertedWithCustomError(c.nft, "NotJackpotMinter");
     expect(await c.nft.lastTokenId()).to.equal(0n);
   });
 
@@ -72,7 +70,7 @@ describe("Атаки: коллекция и продажа NFT", function () {
     const bot = await ethers.deployContract("AttackerBot");
     await c.usdt.transfer(bot.target, U(100));
     await bot.exec(c.usdt.target, c.usdt.interface.encodeFunctionData("approve", [c.nftSale.target, U(100)]));
-    const buyData = c.nftSale.interface.encodeFunctionData("buy", [1, U(10)]);
+    const buyData = c.nftSale.interface.encodeFunctionData("buy", [1, U(20)]);
     await bot.setHook(c.nftSale.target, buyData);
     await bot.exec(c.nftSale.target, buyData);
     expect(await bot.received()).to.equal(0n);
@@ -82,8 +80,10 @@ describe("Атаки: коллекция и продажа NFT", function () {
   it("враждебный токен оплаты: повторная покупка в момент списания отклоняется", async () => {
     const [owner, reserve] = await ethers.getSigners();
     const bad = await ethers.deployContract("HostileToken", [18]);
-    const sale = await ethers.deployContract("IBITINFTSale", [bad.target, c.nft.target, owner.address, reserve.address]);
-    await c.nft.setSeller(sale.target, true);
+    const nft = await ethers.deployContract("IBITICollection", [owner.address, reserve.address]);
+    await nft.addCards(["u"], [5]);
+    const sale = await ethers.deployContract("IBITINFTSale", [bad.target, nft.target, owner.address, reserve.address]);
+    await nft.setSeller(sale.target);
     await sale.setPrices([1], [U(10)]);
     await sale.unpause();
     const bot = await ethers.deployContract("AttackerBot");
@@ -94,7 +94,7 @@ describe("Атаки: коллекция и продажа NFT", function () {
     await bot.exec(sale.target, buyData);
     expect(await bad.attempts()).to.be.greaterThan(0n);
     expect(await bad.successes()).to.equal(0n);
-    expect(await c.nft.balanceOf(bot.target)).to.equal(1n);
+    expect(await nft.balanceOf(bot.target)).to.equal(1n);
   });
 
   it("чужую карточку не забрать: ни посторонний, ни владелец контракта, ни продажа", async () => {
@@ -105,31 +105,71 @@ describe("Атаки: коллекция и продажа NFT", function () {
     expect(await c.nft.ownerOf(id)).to.equal(c.alice.address);
   });
 
-  it("настоящий стейкинг выдаёт только свои уровни: запросить чужую карточку нельзя", async () => {
-    for (const level of [0, 1, 2, 4, 6, 8, 9, 11, 25, 50, 100, 1000]) {
-      await expect(c.nft.jackpotCardOf(level)).to.be.revertedWithCustomError(c.nft, "BadJackpotLevel");
-    }
-    // Pandora и дорогие карточки за стейкинг получить нельзя
-    const cards = await Promise.all([3, 5, 7, 10].map((l) => c.nft.jackpotCardOf(l)));
-    expect(cards.map(Number)).to.deep.equal([2, 3, 4, 5]);
+  it("продавец один и назначается один раз: ни себя, ни кошелёк, ни другую продажу", async () => {
+    const [owner, reserve] = await ethers.getSigners();
+    expect(await c.nft.seller()).to.equal(c.nftSale.target);
+    await expect(c.nft.connect(c.owner).setSeller(c.owner.address)).to.be.revertedWithCustomError(c.nft, "SellerAlreadySet");
+    const other = await ethers.deployContract("IBITINFTSale", [c.usdt.target, c.nft.target, owner.address, reserve.address]);
+    await expect(c.nft.connect(c.owner).setSeller(other.target)).to.be.revertedWithCustomError(c.nft, "SellerAlreadySet");
+    await expect(c.nft.connect(c.owner).setSeller(ethers.ZeroAddress)).to.be.revertedWithCustomError(c.nft, "SellerAlreadySet");
+  });
+
+  it("новая коллекция: кошелёк продавцом не назначить, до назначения выпуск закрыт", async () => {
+    const [owner, reserve] = await ethers.getSigners();
+    const nft = await ethers.deployContract("IBITICollection", [owner.address, reserve.address]);
+    await nft.addCards(["u"], [5]);
+    await expect(nft.setSeller(owner.address)).to.be.revertedWithCustomError(nft, "NotAContract");
+    await expect(nft.setSeller(ethers.ZeroAddress)).to.be.revertedWithCustomError(nft, "NotAContract");
+    await expect(nft.mint(owner.address, 1)).to.be.revertedWithCustomError(nft, "NotSeller");
+    expect(await nft.lastTokenId()).to.equal(0n);
+  });
+
+  it("ЗАМЕР: владелец покупает как все. Цену платит, тираж уменьшается, покупка видна в сети, USDT приходят на кошелёк резерва", async () => {
+    const price = await c.nftSale.priceOf(1);
+    await c.usdt.transfer(c.reserve.address, price);
+    const before = await c.usdt.balanceOf(c.reserve.address);
+    await c.usdt.connect(c.reserve).approve(c.nftSale.target, price);
+    await expect(c.nftSale.connect(c.reserve).buy(1, price)).to.emit(c.nftSale, "Purchased");
+    // В основной сети владелец и кошелёк резерва один Ledger: для него покупка стоит только газа
+    expect(await c.usdt.balanceOf(c.reserve.address)).to.equal(before);
+    const [minted] = await c.nft.supplyOf(1);
+    expect(minted).to.equal(1n);
+  });
+
+  it("контракт покупает по обычной цене и передаёт карточку: призы потом не потребуют новых прав", async () => {
+    const bot = await ethers.deployContract("AttackerBot");
+    const price = await c.nftSale.priceOf(1);
+    await c.usdt.transfer(bot.target, price);
+    await bot.exec(c.usdt.target, c.usdt.interface.encodeFunctionData("approve", [c.nftSale.target, price]));
+    await bot.exec(c.nftSale.target, c.nftSale.interface.encodeFunctionData("buy", [1, price]));
+    const id = await c.nft.lastTokenId();
+    await bot.exec(c.nft.target, c.nft.interface.encodeFunctionData("transferFrom", [bot.target, c.alice.address, id]));
+    expect(await c.nft.ownerOf(id)).to.equal(c.alice.address);
   });
 
   it("владелец: тираж не поднять, цену с неверными знаками не поставить, процент не выше 10%", async () => {
-    await expect(c.nft.lowerMaxSupply(1, 1001)).to.be.revertedWithCustomError(c.nft, "BadMaxSupply");
-    await expect(c.nft.lowerMaxSupply(1, 1000)).to.be.revertedWithCustomError(c.nft, "BadMaxSupply");
+    await expect(c.nft.lowerMaxSupply(1, 2001)).to.be.revertedWithCustomError(c.nft, "BadMaxSupply");
+    await expect(c.nft.lowerMaxSupply(1, 2000)).to.be.revertedWithCustomError(c.nft, "BadMaxSupply");
     await expect(c.nftSale.setPrices([1], [10])).to.be.revertedWithCustomError(c.nftSale, "PriceOutOfRange");
     await expect(c.nft.setRoyalty(c.owner.address, 1001)).to.be.revertedWithCustomError(c.nft, "RoyaltyTooHigh");
   });
 
   describe("ЗАМЕР: что можно с украденным ключом владельца", function () {
-    it("коллекция: бесплатно выпустить карточки в пределах тиража. Чужие NFT и USDT не тронуть", async () => {
+    it("коллекция: ни цену сдвинуть, ни выпустить себе бесплатно, ни забрать чужое, ни поднять тираж", async () => {
       const id = await buy(c.alice, 2);
-      await c.nft.connect(c.owner).setSeller(c.owner.address, true);
-      await c.nft.connect(c.owner).mint(c.owner.address, 11);
-      expect(await c.nft.balanceOf(c.owner.address)).to.equal(1n);
-      await expect(c.nft.connect(c.owner).mint(c.owner.address, 11)).to.be.revertedWithCustomError(c.nft, "SoldOut");
+      const price = await c.nftSale.priceOf(1);
+      await expect(c.nftSale.connect(c.owner).setPrices([1], [U(1)])).to.be.revertedWithCustomError(c.nftSale, "PriceLocked");
+      await expect(c.nftSale.connect(c.owner).setPrices([1], [price * 2n])).to.be.revertedWithCustomError(c.nftSale, "PriceLocked");
+      await expect(c.nft.connect(c.owner).setSeller(c.owner.address)).to.be.revertedWithCustomError(c.nft, "SellerAlreadySet");
+      await expect(c.nft.connect(c.owner).mint(c.owner.address, 11)).to.be.revertedWithCustomError(c.nft, "NotSeller");
       await expect(c.nft.connect(c.owner).transferFrom(c.alice.address, c.owner.address, id)).to.be.reverted;
+      await expect(c.nft.connect(c.owner).lowerMaxSupply(11, 2)).to.be.revertedWithCustomError(c.nft, "BadMaxSupply");
       expect(await c.nft.ownerOf(id)).to.equal(c.alice.address);
+    });
+
+    it("можно добавить только одну карточку, 12-ю: её картинку и цену от $1 задаёт владелец", async () => {
+      await c.nft.connect(c.owner).addCards(["full"], [3]);
+      await expect(c.nft.connect(c.owner).addCards(["copy"], [1])).to.be.revertedWithCustomError(c.nft, "TooManyCards");
     });
 
     it("вестинг: ключ владельца выдаёт только открытое на сегодня, больше не может", async () => {

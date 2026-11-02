@@ -50,9 +50,9 @@ Holders can burn their own tokens.
 | IBITI token | [`0x71b552D3503fe20610aaA470A96E1838fae8381A`](https://bscscan.com/address/0x71b552D3503fe20610aaA470A96E1838fae8381A) |
 | Team vesting | [`0xC4bdF5b6d7688a7d5457A194ac1210ec34003604`](https://bscscan.com/address/0xC4bdF5b6d7688a7d5457A194ac1210ec34003604) |
 | Website sale | [`0x42924EE213eF1943BE655c2C535FB72F52C64781`](https://bscscan.com/address/0x42924EE213eF1943BE655c2C535FB72F52C64781) |
-| Staking | [`0x509e0CeaA5840304D2f33bC43e66Fa27ECDc0348`](https://bscscan.com/address/0x509e0CeaA5840304D2f33bC43e66Fa27ECDc0348) |
-| NFT collection | [`0x771Ad1baef4b7321F10F2549b6C1Bc34106120Ed`](https://bscscan.com/address/0x771Ad1baef4b7321F10F2549b6C1Bc34106120Ed) |
-| NFT sale | [`0x92CFE8c739e6A1bE9bbc2971E5A7ba6747fccA1f`](https://bscscan.com/address/0x92CFE8c739e6A1bE9bbc2971E5A7ba6747fccA1f) |
+| Staking | [`0x82BA8720FBa8a6A939D078b9ed62afB9ABC3B426`](https://bscscan.com/address/0x82BA8720FBa8a6A939D078b9ed62afB9ABC3B426) |
+| NFT collection | [`0x37F535AF03966CEFa35Bd6fe1d481831d9bc3a67`](https://bscscan.com/address/0x37F535AF03966CEFa35Bd6fe1d481831d9bc3a67) |
+| NFT sale | [`0x44E65077168De8Ff5EC6545857DAd2cB02310fe2`](https://bscscan.com/address/0x44E65077168De8Ff5EC6545857DAd2cB02310fe2) |
 
 Other modules are separate contracts. They are added here as they are deployed.
 
@@ -108,30 +108,28 @@ Lock IBITI for 1 to 12 months for a reward known in advance, from 1% to 30% of t
 
 | When you withdraw | You receive |
 |---|---|
-| Before the term ends | Stake minus a penalty equal to the reward percentage, no reward, no NFT |
-| Within 30 days after the term | Stake, reward and NFTs, or renew with a new amount and term |
-| Later | Stake only, with no time limit; the reward and NFTs are lost |
+| Before the term ends | Stake minus a penalty equal to the reward percentage, no reward |
+| Within 30 days after the term | Stake and reward, or renew with a new amount and term |
+| Later | Stake only, with no time limit; the reward is lost |
 
 Rewards come from a pool on the contract, funded by plain transfers. The reward is reserved when you stake, so one user's stake never pays another user's reward. When the pool runs out, new stakes are refused.
 Penalties and lost rewards stay in the pool, and the owner can withdraw its free part. Stakes and reserved rewards are out of the owner's reach. A pause stops new stakes and renewals; withdrawing always stays open.
-Reward NFTs come from `IBITICollection`, which the staking contract binds once. A failed NFT mint never blocks the tokens.
+The contract has no link to the NFT collection and cannot be upgraded.
 
 ### `IBITICollection.sol`
 
 The Path of Humanity: 11 cards from the story told in our book. An NFT stays with its holder for good: there is no expiry, no burn and no pause, and the owner cannot take or freeze it.
-Each card has its own edition, which can be lowered but never raised. New cards can be added later. It is a collectible: it gives no discount, no income and no share in the project.
+Each card has its own edition, which can be lowered but never raised. One more card, the Full Collection, can be added later. It is a collectible: it gives no discount, no income and no share in the project.
 A resale on a marketplace that honours ERC-2981 pays 5% to the reserve wallet; the owner can change this, up to 10%.
-
-A stake of 3, 6, 9 or 12 months held to the end earns 2 cards as a bonus: Awakening for 3 months, The First Gods and Kings for 6, Enlightenment for 9, The Age of Darkness and Faith for 12. They come out of the same edition as the cards on sale and can be kept or sold. If the edition has run out, the staking contract pays the tokens without the NFT.
 
 ### `IBITINFTSale.sol`
 
 Sale of the cards for USDT at any time, while the edition lasts. USDT goes straight to the reserve wallet and never stays on the contract.
-A buyer passes the price they saw, so a purchase at a different price is rejected. The sale is a separate contract, so it can be replaced without touching the collection.
+The price of each card is set once and can never change, up or down, not even by the owner. Cards are issued only by this sale: the collection accepts one sale contract, set once, and has no other way to issue a card. It can never hold more than 12 cards.
 
-### `testnet/TestUSDT.sol`, `testnet/MockJackpotNFT.sol`
+### `testnet/TestUSDT.sol`
 
-Test USDT with 18 decimals, like BSC-USDT, and a stand-in for the NFT contract used in tests. Not deployed on mainnet.
+Test USDT with 18 decimals, like BSC-USDT. Not deployed on mainnet.
 
 ---
 

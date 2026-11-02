@@ -1,5 +1,5 @@
 // Только BSC testnet: коллекция в настоящей сети после 09-deploy-nft.js и 10-setup-nft.js. Каждая запись подтверждается на Ledger.
-// Покупка, передача и бонус из общего тиража. Подписант на время получает право выдавать бонус, в конце оно снимается.
+// Покупка и передача. Что должно быть отклонено: выпуск мимо продажи, смена продавца и цены.
 //   npx hardhat run scripts/testnet-nft-check.js --network bscTestnet
 const hre = require("hardhat");
 const { ethers, network } = hre;
@@ -33,7 +33,8 @@ async function main() {
   console.log(`✔ процент с перепродаж 5% на ${royaltyTo}`);
 
   await mustRevert("выпуск мимо продажи", () => nft.mint.staticCall(me, 1));
-  await mustRevert("бонус без права", () => nft.mintJackpot.staticCall(me, 10, ""));
+  await mustRevert("второй продавец", () => nft.setSeller.staticCall(sale.target));
+  if ((await nft.seller()) !== sale.target) throw new Error("выпускает не наша продажа");
 
   const price = await sale.priceOf(1);
   await mustRevert("покупка по чужой цене", () => sale.buy.staticCall(1, price + 1n));
@@ -54,27 +55,8 @@ async function main() {
   if ((await nft.ownerOf(bought)) !== BURN) throw new Error("передача не прошла");
   console.log("✔ купленная карточка передаётся");
 
-  console.log("Право выдавать бонус подписанту. Подтвердите на Ledger.");
-  await (await nft.setJackpotMinter(me, true)).wait();
-  await mustRevert("неверный уровень бонуса", () => nft.mintJackpot.staticCall(me, 4, ""));
-
-  const [mintedBefore] = await nft.supplyOf(5);
-  console.log("Бонус уровня 10. Подтвердите на Ledger.");
-  await (await nft.mintJackpot(me, 10, "")).wait();
-  const bonus = await nft.lastTokenId();
-  const [mintedAfter] = await nft.supplyOf(5);
-  if ((await nft.cardOf(bonus)) !== 5n) throw new Error("бонус выдал не ту карточку");
-  if (mintedAfter !== mintedBefore + 1n) throw new Error("бонус не уменьшил тираж");
-  console.log(`✔ бонус #${bonus}: карточка 5, тираж ${mintedBefore} → ${mintedAfter}, ${await nft.tokenURI(bonus)}`);
-
-  console.log("Передача бонусной карточки. Подтвердите на Ledger.");
-  await (await nft.transferFrom(me, BURN, bonus)).wait();
-  if ((await nft.ownerOf(bonus)) !== BURN) throw new Error("передача не прошла");
-  console.log("✔ бонусная карточка передаётся");
-
-  console.log("Снимаю право выдавать бонус. Подтвердите на Ledger.");
-  await (await nft.setJackpotMinter(me, false)).wait();
-  await mustRevert("бонус без права", () => nft.mintJackpot.staticCall(me, 10, ""));
+  await mustRevert("смена цены", () => sale.setPrices.staticCall([1], [ethers.parseEther("1")]));
+  await mustRevert("обнуление цены", () => sale.setPrices.staticCall([1], [0]));
   console.log("Готово.");
 }
 

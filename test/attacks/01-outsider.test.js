@@ -58,11 +58,32 @@ describe("Атаки: посторонний", function () {
           const call = contract.connect(c.mallory)[f.format("sighash")](...args);
           if (f.name === "acceptOwnership") await expect(call, f.name).to.be.revertedWith(NOT_PENDING);
           else if (f.name === "mint") await expect(call, f.name).to.be.revertedWithCustomError(contract, "NotSeller");
-          else if (f.name === "mintJackpot") await expect(call, f.name).to.be.revertedWithCustomError(contract, "NotJackpotMinter");
           else await expect(call, f.format("sighash")).to.be.revertedWith(ONLY_OWNER);
         }
       });
     }
+  });
+
+  describe("контракты не обновляются", function () {
+    // Команды, которыми подменяют логику или уничтожают контракт
+    const FORBIDDEN = { 0xf4: "DELEGATECALL", 0xf2: "CALLCODE", 0xff: "SELFDESTRUCT" };
+    const opcodes = (hex) => {
+      const code = Buffer.from(hex.slice(2), "hex");
+      const end = code.length - 2 - code.readUInt16BE(code.length - 2); // хвост с хэшем исходников не код
+      const seen = new Set();
+      for (let i = 0; i < end; i++) {
+        seen.add(code[i]);
+        if (code[i] >= 0x60 && code[i] <= 0x7f) i += code[i] - 0x5f; // данные PUSH не команды
+      }
+      return seen;
+    };
+
+    it("ни в одном контракте нет команд подмены логики и уничтожения", async () => {
+      for (const [name, contract] of Object.entries(contracts())) {
+        const seen = opcodes(await ethers.provider.getCode(contract.target));
+        for (const [op, label] of Object.entries(FORBIDDEN)) expect(seen.has(Number(op)), `${name}: ${label}`).to.equal(false);
+      }
+    });
   });
 
   describe("BNB", function () {
@@ -134,8 +155,7 @@ describe("Атаки: посторонний", function () {
     it("владелец нажал вредоносный контракт: tx.origin не даёт прав", async () => {
       const bot = await ethers.deployContract("AttackerBot");
       const steal = [
-        [c.nft, "setSeller", [bot.target, true]],
-        [c.nft, "setJackpotMinter", [bot.target, true]],
+        [c.nft, "setSeller", [bot.target]],
         [c.nft, "setRoyalty", [bot.target, 1000]],
         [c.nft, "transferOwnership", [bot.target]],
         [c.nftSale, "setPrices", [[1], [U(1)]]],

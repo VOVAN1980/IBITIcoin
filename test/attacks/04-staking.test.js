@@ -1,7 +1,8 @@
-// Стейкинг: уйти без штрафа, получить награду дважды, забрать чужой вклад, вычерпать запас, потерять карточки из-за газа.
+// Стейкинг: уйти без штрафа, получить награду дважды, забрать чужой вклад, вычерпать запас, получить карточку вкладом.
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
-const { deployAll, I, U, DAY, MONTH, nextTxAt, travel } = require("./fixture");
+const { ethers, artifacts } = require("hardhat");
+const { deployAll, I, DAY, MONTH, nextTxAt, travel, cards } = require("./fixture");
+const { closeOldSteps, setupSteps, checkSetup } = require("../../scripts/lib/nft-setup");
 
 describe("Атаки: стейкинг", function () {
   let c;
@@ -18,23 +19,21 @@ describe("Атаки: стейкинг", function () {
   });
 
   describe("срок и штраф", function () {
-    it("за секунду до срока: штраф, без награды и NFT. Ровно в срок: всё сразу", async () => {
-      const a = await stake(c.alice, I(1_000), 12);
-      const b = await stake(c.bob, I(1_000), 12);
+    it("за секунду до срока: штраф, без награды. Ровно в срок: всё сразу", async () => {
+      const a = await stake(c.alice, I(5_000), 6);
+      const b = await stake(c.bob, I(5_000), 6);
       const m = await maturity(c.alice, a);
 
       const aliceBefore = await balance(c.alice);
       await nextTxAt(m - 2n);
       await c.staking.connect(c.alice).unstake(a);
-      expect((await balance(c.alice)) - aliceBefore).to.equal(I(700));
-      expect(await c.nft.balanceOf(c.alice.address)).to.equal(0n);
+      expect((await balance(c.alice)) - aliceBefore).to.equal(I(4_400));
 
       const bobBefore = await balance(c.bob);
       const mb = await maturity(c.bob, b);
       await nextTxAt(mb);
       await c.staking.connect(c.bob).unstake(b);
-      expect((await balance(c.bob)) - bobBefore).to.equal(I(1_300));
-      expect(await c.nft.balanceOf(c.bob.address)).to.equal(2n);
+      expect((await balance(c.bob)) - bobBefore).to.equal(I(5_600));
     });
 
     it("последняя секунда окна: награда есть. Следующая: только вклад", async () => {
@@ -52,7 +51,6 @@ describe("Атаки: стейкинг", function () {
       await nextTxAt(endB > end ? endB + 1n : end + 1n);
       await c.staking.connect(c.bob).unstake(b);
       expect((await balance(c.bob)) - bobBefore).to.equal(I(1_000));
-      expect(await c.nft.balanceOf(c.bob.address)).to.equal(0n);
     });
 
     it("короткий вклад не даёт длинную награду, месяцы вне 1–12 отклоняются", async () => {
@@ -77,20 +75,18 @@ describe("Атаки: стейкинг", function () {
       expect(await c.staking.stakeOf(c.alice.address)).to.equal(I(1_000));
     });
 
-    it("награда и карточки не получаются дважды", async () => {
-      const id = await stake(c.alice, I(1_000), 12);
+    it("награда не получается дважды", async () => {
+      const id = await stake(c.alice, I(5_000), 6);
       await nextTxAt(await maturity(c.alice, id));
       await c.staking.connect(c.alice).unstake(id);
       await expect(c.staking.connect(c.alice).unstake(id)).to.be.revertedWithCustomError(c.staking, "StakeClosed");
       await expect(c.staking.connect(c.alice).renew(id, I(100), 1)).to.be.revertedWithCustomError(c.staking, "StakeClosed");
-      expect(await c.nft.balanceOf(c.alice.address)).to.equal(2n);
     });
 
     it("продление сразу после продления: второй раз уже идёт новый срок", async () => {
       const id = await stake(c.alice, I(1_000), 3);
       await nextTxAt(await maturity(c.alice, id));
       await c.staking.connect(c.alice).renew(id, I(1_000), 3);
-      expect(await c.nft.balanceOf(c.alice.address)).to.equal(2n);
       await expect(c.staking.connect(c.alice).renew(id, I(1_000), 3)).to.be.revertedWithCustomError(c.staking, "StakeClosed");
       await expect(c.staking.connect(c.alice).renew(id + 1n, I(1_000), 3)).to.be.revertedWithCustomError(c.staking, "StakeStillLocked");
     });
@@ -104,13 +100,12 @@ describe("Атаки: стейкинг", function () {
       expect(await c.staking.stakeOf(c.alice.address)).to.equal(I(1_000));
     });
 
-    it("продление после окна: ни награды, ни карточек", async () => {
+    it("продление после окна: без награды", async () => {
       const id = await stake(c.alice, I(1_000), 12);
       await nextTxAt((await maturity(c.alice, id)) + BigInt(30 * DAY) + 1n);
       const before = await balance(c.alice);
       await c.staking.connect(c.alice).renew(id, I(1_000), 1);
       expect(await balance(c.alice)).to.equal(before);
-      expect(await c.nft.balanceOf(c.alice.address)).to.equal(0n);
     });
 
     it("доплата при продлении без разрешения: откат всего, вклад цел", async () => {
@@ -163,13 +158,12 @@ describe("Атаки: стейкинг", function () {
       await expect(c.staking.rescueToken(c.token.target, c.owner.address, 1n)).to.be.revertedWithCustomError(c.staking, "RescueIbitiForbidden");
     });
 
-    it("пауза не мешает забрать вклад, новый контракт NFT подставить нельзя", async () => {
+    it("пауза не мешает забрать вклад", async () => {
       const id = await stake(c.alice, I(1_000), 1);
       await c.staking.pause();
       await expect(stake(c.bob, I(1_000), 1)).to.be.revertedWith("Pausable: paused");
       await nextTxAt(await maturity(c.alice, id));
       await c.staking.connect(c.alice).unstake(id);
-      await expect(c.staking.setNFT(c.token.target)).to.be.revertedWithCustomError(c.staking, "NFTAlreadySet");
     });
 
     it("вход и досрочный выход по кругу только теряют деньги и пополняют запас", async () => {
@@ -211,79 +205,240 @@ describe("Атаки: стейкинг", function () {
     });
   });
 
-  describe("газ и карточки", function () {
-    // try/catch вокруг выдачи NFT: при малом газе выдача падает, а токены уходят.
-    it("при любом газе: либо откат всего, либо токены выплачены ровно, карточек не больше 2", async () => {
-      const id = await stake(c.alice, I(1_000), 12);
+  describe("стейкинг и карточки не связаны", function () {
+    it("трюк из письма: 50 вкладов по 100 IBITI на 12 месяцев, ни одной карточки", async () => {
+      await c.token.connect(c.mallory).approve(c.staking.target, I(5_000));
+      for (let i = 0; i < 50; i++) await c.staking.connect(c.mallory).stake(I(100), 12);
       await travel(12 * MONTH);
+      for (let i = 0; i < 50; i++) await c.staking.connect(c.mallory).unstake(i);
+      expect(await c.nft.balanceOf(c.mallory.address)).to.equal(0n);
+    });
+
+    it("крупный вклад на 12 месяцев и продление: токены с наградой, ни одной карточки", async () => {
+      const id = await stake(c.alice, I(50_000), 12);
+      await nextTxAt(await maturity(c.alice, id));
       const before = await balance(c.alice);
-      const seen = { reverted: 0, skipped: [] };
-      for (let gas = 100_000; gas <= 700_000; gas += 25_000) {
-        const snap = await ethers.provider.send("evm_snapshot", []);
-        const tx = await c.staking.connect(c.alice).unstake(id, { gasLimit: gas }).catch(() => null);
-        const receipt = tx ? await tx.wait().catch(() => null) : null;
-        if (!receipt) {
-          seen.reverted++;
-          expect(await c.staking.stakeOf(c.alice.address)).to.equal(I(1_000));
-        } else {
-          expect((await balance(c.alice)) - before).to.equal(I(1_300));
-          const n = await c.nft.balanceOf(c.alice.address);
-          expect(n).to.be.lte(2n);
-          if (n < 2n) seen.skipped.push([gas, Number(n)]);
-          await expect(c.staking.connect(c.alice).unstake(id)).to.be.revertedWithCustomError(c.staking, "StakeClosed");
-        }
-        await ethers.provider.send("evm_revert", [snap]);
-      }
-      console.log(`      газ: откатов ${seen.reverted}, успешно без части карточек при лимитах ${JSON.stringify(seen.skipped)}`);
+      await c.staking.connect(c.alice).renew(id, I(50_000), 12);
+      expect((await balance(c.alice)) - before).to.equal(I(15_000));
+      expect(await c.nft.lastTokenId()).to.equal(0n);
     });
 
-    // Точный перебор вокруг настоящего расхода: есть ли лимит, при котором токены ушли, а карточки потерялись
-    const sweep = async (label, send) => {
-      const snap0 = await ethers.provider.send("evm_snapshot", []);
-      const used = (await (await send(2_000_000)).wait()).gasUsed;
-      await ethers.provider.send("evm_revert", [snap0]);
-      const lost = [];
-      let ok = 0;
-      let reverted = 0;
-      for (let gas = used; gas <= used + 90_000n; gas += 100n) {
-        const snap = await ethers.provider.send("evm_snapshot", []);
-        const tx = await send(gas).catch(() => null);
-        const receipt = tx ? await tx.wait().catch(() => null) : null;
-        if (receipt) {
-          ok++;
-          const n = await c.nft.balanceOf(c.alice.address);
-          if (n < 2n) lost.push([Number(gas), Number(n)]);
-        } else reverted++;
-        await ethers.provider.send("evm_revert", [snap]);
-      }
-      console.log(`      ${label}: расход ${used}, перебрано лимитов ${ok + reverted}, откатов ${reverted}, прошло ${ok}, из них с потерей карточек ${lost.length} ${JSON.stringify(lost.slice(0, 6))}`);
-      expect(lost, `${label}: при каких лимитах карточки теряются`).to.deep.equal([]);
-      return lost;
-    };
-
-    it("ЗАМЕР: точный перебор газа, выход с двумя карточками", async () => {
-      const id = await stake(c.alice, I(1_000), 12);
-      await travel(12 * MONTH);
-      await sweep("выход", (gasLimit) => c.staking.connect(c.alice).unstake(id, { gasLimit }));
-    });
-
-    it("ЗАМЕР: точный перебор газа, продление с двумя карточками", async () => {
-      const id = await stake(c.alice, I(1_000), 12);
-      await travel(12 * MONTH);
-      await sweep("продление", (gasLimit) => c.staking.connect(c.alice).renew(id, I(1_000), 1, { gasLimit }));
-    });
-
-    it("ЗАМЕР: сколько газа нужно на выход с двумя карточками и что даёт оценка кошелька", async () => {
-      const a = await stake(c.alice, I(1_000), 12);
-      await travel(12 * MONTH);
-      const estimate = await c.staking.connect(c.alice).unstake.estimateGas(a);
-      const snap = await ethers.provider.send("evm_snapshot", []);
-      const full = await (await c.staking.connect(c.alice).unstake(a, { gasLimit: 1_500_000 })).wait();
-      await ethers.provider.send("evm_revert", [snap]);
-      const tx = await c.staking.connect(c.alice).unstake(a, { gasLimit: estimate });
-      const r = await tx.wait();
-      console.log(`      оценка ${estimate}, реально с запасом газа ${full.gasUsed}, по оценке потрачено ${r.gasUsed}, карточек ${await c.nft.balanceOf(c.alice.address)}`);
-      expect(full.gasUsed).to.be.lt(600_000n);
+    it("выпускает только продажа: стейкинг в коллекции не значится", async () => {
+      expect(await c.nft.seller()).to.equal(c.nftSale.target);
     });
   });
+
+  describe("скрипты запуска против чужих действий и ошибок в адресах", function () {
+    const names = (steps) => steps.map(([name]) => name);
+    let fresh;
+    const close = (over = {}) => closeOldSteps({ oldStaking: c.staking, oldSale: c.nftSale, oldNft: c.nft, newStakingAddress: fresh.target, owner: c.owner.address, ...over });
+    const setup = (nft, sale, over = {}) => setupSteps({ nft, sale, list: cards, owner: c.owner.address, usdt: c.usdt.target, reserve: c.reserve.address, ...over });
+    const errorOf = async (promise) => {
+      let error;
+      await promise.catch((e) => (error = e));
+      expect(error, "должно быть отклонено").to.not.equal(undefined);
+      return error.message;
+    };
+    const collection = () => ethers.deployContract("IBITICollection", [c.owner.address, c.reserve.address]);
+    const saleFor = (nft, over = {}) => ethers.deployContract("IBITINFTSale", [over.usdt || c.usdt.target, nft.target, over.owner || c.owner.address, over.reserve || c.reserve.address]);
+
+    // Подделка обычной транзакцией: тот же код и то же хранилище, но одна из копий вписанного адреса другая.
+    // Берётся копия, которую геттер не читает: снаружи контракт выглядит настоящим.
+    const forge = async (name, genuine, immutableName, fakeAddress) => {
+      const build = await artifacts.getBuildInfo(`contracts/${name}.sol:${name}`);
+      const def = build.output.sources[`contracts/${name}.sol`].ast.nodes.find((n) => n.nodeType === "ContractDefinition" && n.name === name);
+      const variable = def.nodes.find((n) => n.name === immutableName && n.mutability === "immutable");
+      const refs = build.output.contracts[`contracts/${name}.sol`][name].evm.deployedBytecode.immutableReferences[String(variable.id)];
+      const code = await ethers.provider.getCode(genuine.target);
+      let init = "";
+      for (let slot = 0; slot < 12; slot++) {
+        const value = await ethers.provider.getStorage(genuine.target, slot);
+        if (BigInt(value) !== 0n) init += `7f${value.slice(2)}60${slot.toString(16).padStart(2, "0")}55`;
+      }
+      const real = await genuine[immutableName]();
+      for (const at of refs) {
+        const runtime = code.slice(2, 2 + at.start * 2) + ethers.zeroPadValue(fakeAddress, at.length).slice(2) + code.slice(2 + (at.start + at.length) * 2);
+        const len = (runtime.length / 2).toString(16).padStart(4, "0");
+        const offset = (init.length / 2 + 15).toString(16).padStart(4, "0");
+        const receipt = await (await c.owner.sendTransaction({ data: `0x${init}61${len}61${offset}60003961${len}6000f3${runtime}` })).wait();
+        const forged = new ethers.Contract(receipt.contractAddress, genuine.interface, c.owner);
+        if ((await forged[immutableName]()) === real) return forged;
+      }
+      throw new Error("нет копии, скрытой от геттера");
+    };
+
+    beforeEach(async () => {
+      fresh = await ethers.deployContract("IBITIStaking", [c.token.target, c.owner.address, I(100)]);
+    });
+
+    it("закрытие: чужой вклад не мешает паузе, но запас остаётся на месте", async () => {
+      await c.token.connect(c.alice).approve(c.staking.target, I(100));
+      await c.staking.connect(c.alice).stake(I(100), 1);
+      const free = await c.staking.freeRewards();
+      const { steps, inUse } = await close();
+      expect(names(steps)).to.deep.equal(["Пауза старого стейкинга", "Пауза старой продажи карточек"]);
+      expect(inUse).to.have.length(1);
+      for (const [, send] of steps) await send();
+      expect(await c.staking.paused()).to.equal(true);
+      expect(await c.nftSale.paused()).to.equal(true);
+      expect(await c.staking.freeRewards()).to.equal(free);
+    });
+
+    it("закрытие: чужая покупка старой карточки не мешает паузе, но запас остаётся на месте", async () => {
+      const price = await c.nftSale.priceOf(1);
+      await c.usdt.connect(c.alice).approve(c.nftSale.target, price);
+      await c.nftSale.connect(c.alice).buy(1, price);
+      const { steps, inUse } = await close();
+      expect(names(steps)).to.deep.equal(["Пауза старого стейкинга", "Пауза старой продажи карточек"]);
+      expect(inUse).to.have.length(1);
+    });
+
+    it("закрытие: контракты свободны, запас переносится на новый стейкинг целиком", async () => {
+      const free = await c.staking.freeRewards();
+      const { steps, inUse } = await close();
+      expect(inUse).to.deep.equal([]);
+      expect(steps).to.have.length(3);
+      for (const [, send] of steps) await send();
+      expect(await fresh.freeRewards()).to.equal(free);
+      expect(await c.staking.freeRewards()).to.equal(0n);
+      expect((await close()).steps).to.deep.equal([]);
+    });
+
+    it("перенос: обычный кошелёк вместо стейкинга отклоняется до первой транзакции", async () => {
+      const free = await c.staking.freeRewards();
+      const before = await c.token.balanceOf(c.mallory.address);
+      expect(await errorOf(close({ newStakingAddress: c.mallory.address }))).to.contain("не новый стейкинг");
+      expect(await c.staking.paused()).to.equal(false);
+      expect(await c.nftSale.paused()).to.equal(false);
+      expect(await c.staking.freeRewards()).to.equal(free);
+      expect(await c.token.balanceOf(c.mallory.address)).to.equal(before);
+    });
+
+    it("перенос: другой контракт, старый адрес, чужой токен и чужой владелец отклоняются", async () => {
+      expect(await errorOf(close({ newStakingAddress: c.nftSale.target }))).to.contain("не новый стейкинг");
+      expect(await errorOf(close({ newStakingAddress: c.staking.target }))).to.contain("совпадает со старым");
+      const otherToken = await ethers.deployContract("IBITI", [[c.owner.address], [I(100_000_000)]]);
+      const wrongToken = await ethers.deployContract("IBITIStaking", [otherToken.target, c.owner.address, I(100)]);
+      expect(await errorOf(close({ newStakingAddress: wrongToken.target }))).to.contain("другим токеном");
+      const wrongOwner = await ethers.deployContract("IBITIStaking", [c.token.target, c.mallory.address, I(100)]);
+      expect(await errorOf(close({ newStakingAddress: wrongOwner.target }))).to.contain("владелец нового стейкинга");
+    });
+
+    it("перенос: новый стейкинг уже открыт или с вкладами: отклоняется", async () => {
+      await c.token.transfer(fresh.target, I(10));
+      await fresh.unpause();
+      expect(await errorOf(close())).to.contain("на паузе");
+      await c.token.connect(c.alice).approve(fresh.target, I(100));
+      await fresh.connect(c.alice).stake(I(100), 1);
+      await fresh.pause();
+      expect(await errorOf(close())).to.contain("уже есть вклады");
+    });
+
+    it("перенос: вклад появился после показа плана: перед подписью всё читается заново, перевода нет", async () => {
+      const { steps } = await close();
+      const free = await c.staking.freeRewards();
+      await c.token.connect(c.alice).approve(c.staking.target, I(100));
+      await c.staking.connect(c.alice).stake(I(100), 1);
+      const left = await c.staking.freeRewards();
+      expect(left).to.be.lessThan(free);
+      expect(await errorOf(steps[2][1]())).to.contain("есть вклады");
+      expect(await c.staking.freeRewards()).to.equal(left);
+      expect(await fresh.freeRewards()).to.equal(0n);
+    });
+
+    it("перенос: уходит остаток на момент подписи, а не из показанного плана", async () => {
+      const { steps } = await close();
+      const free = await c.staking.freeRewards();
+      await c.token.connect(c.mallory).transfer(c.staking.target, I(5));
+      for (const [, send] of steps) await send();
+      expect(await fresh.freeRewards()).to.equal(free + I(5));
+      expect(await c.staking.freeRewards()).to.equal(0n);
+    });
+
+    it("повторный запуск настройки: намеренную паузу не снимает, другую цену не предлагает", async () => {
+      await c.nftSale.pause();
+      expect(await setup(c.nft, c.nftSale)).to.deep.equal([]);
+      const changed = cards.map((card) => (card.id === 3 ? { ...card, price: card.price + 1 } : card));
+      expect(await errorOf(setup(c.nft, c.nftSale, { list: changed }))).to.contain("карточки: 3");
+    });
+
+    it("настройка: коллекцию, закреплённую за другой продажей, не трогает", async () => {
+      const other = await saleFor(c.nft);
+      expect(await errorOf(setup(c.nft, other))).to.contain("другой продажей");
+    });
+
+    it("настройка: продажа другой коллекции отклоняется до первой транзакции, правильная пара потом проходит", async () => {
+      const [a, b] = [await collection(), await collection()];
+      const saleB = await saleFor(b);
+      expect(await errorOf(setup(a, saleB))).to.contain("другой коллекцией");
+      expect(await a.seller()).to.equal(ethers.ZeroAddress);
+      expect(await a.cardCount()).to.equal(0n);
+      expect(await saleB.paused()).to.equal(true);
+      expect(await saleB.priceOf(1)).to.equal(0n);
+
+      const saleA = await saleFor(a);
+      for (const [, send] of await setup(a, saleA)) await (await send()).wait();
+      expect(await a.seller()).to.equal(saleA.target);
+      expect(await checkSetup({ nft: a, sale: saleA, list: cards })).to.deep.equal([]);
+    });
+
+    it("настройка: чужой USDT, чужой кошелёк и чужой владелец отклоняются до первой транзакции", async () => {
+      const a = await collection();
+      const fake = await ethers.deployContract("TestUSDT");
+      expect(await errorOf(setup(a, await saleFor(a, { usdt: fake.target })))).to.contain("не тот USDT");
+      expect(await errorOf(setup(a, await saleFor(a, { reserve: c.mallory.address })))).to.contain("не на тот кошелёк");
+      expect(await errorOf(setup(a, await saleFor(a, { owner: c.mallory.address })))).to.contain("владелец продажи");
+      const foreign = await ethers.deployContract("IBITICollection", [c.mallory.address, c.reserve.address]);
+      expect(await errorOf(setup(foreign, await saleFor(foreign)))).to.contain("владелец коллекции");
+      expect(await a.seller()).to.equal(ethers.ZeroAddress);
+      expect(await foreign.seller()).to.equal(ethers.ZeroAddress);
+    });
+
+    it("настройка: другой контракт по адресу продажи или коллекции отклоняется, наличия кода мало", async () => {
+      const a = await collection();
+      const notSale = await ethers.getContractAt("IBITINFTSale", c.usdt.target);
+      expect(await errorOf(setup(a, notSale))).to.contain("по адресу продажи");
+      const bot = await ethers.deployContract("AttackerBot");
+      const botAsSale = await ethers.getContractAt("IBITINFTSale", bot.target);
+      expect(await errorOf(setup(a, botAsSale))).to.contain("по адресу продажи");
+      const notCollection = await ethers.getContractAt("IBITICollection", c.staking.target);
+      expect(await errorOf(setup(notCollection, c.nftSale))).to.contain("по адресу коллекции");
+      expect(await a.seller()).to.equal(ethers.ZeroAddress);
+    });
+
+    for (const immutableName of ["paymentToken", "collection", "reserveWallet"]) {
+      it(`настройка: подделка продажи с другой копией ${immutableName} отклоняется до первой транзакции`, async () => {
+        const a = await collection();
+        const saleA = await saleFor(a);
+        const forged = await forge("IBITINFTSale", saleA, immutableName, c.mallory.address);
+        const nonce = await c.owner.getNonce();
+        expect(await errorOf(setup(a, forged))).to.contain("по адресу продажи");
+        expect(await c.owner.getNonce()).to.equal(nonce);
+        expect(await a.seller()).to.equal(ethers.ZeroAddress);
+        expect(await a.cardCount()).to.equal(0n);
+      });
+    }
+
+    it("перенос: подделка нового стейкинга с другой копией токена отклоняется, запас на месте", async () => {
+      const otherToken = await ethers.deployContract("IBITI", [[c.owner.address], [I(100_000_000)]]);
+      const forged = await forge("IBITIStaking", fresh, "token", otherToken.target);
+      expect(await forged.token()).to.equal(c.token.target);
+      const free = await c.staking.freeRewards();
+      expect(await errorOf(close({ newStakingAddress: forged.target }))).to.contain("не новый стейкинг");
+      expect(await c.staking.paused()).to.equal(false);
+      expect(await c.staking.freeRewards()).to.equal(free);
+    });
+
+    it("настройка: продажа, открытая до настройки, отклоняется; при повторном запуске проверки тоже идут", async () => {
+      const a = await collection();
+      const saleA = await saleFor(a);
+      await saleA.unpause();
+      expect(await errorOf(setup(a, saleA))).to.contain("на паузе");
+      const lower = cards.map((card) => (card.id === 2 ? { ...card, maxSupply: card.maxSupply - 1 } : card));
+      expect(await errorOf(setup(c.nft, c.nftSale, { list: lower }))).to.contain("неверный тираж карточки 2");
+      // Шагов нет, а проверки всё равно идут
+      expect(await errorOf(setup(c.nft, c.nftSale, { usdt: c.token.target }))).to.contain("не тот USDT");
+    });
+  });
+
 });

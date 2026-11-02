@@ -20,7 +20,9 @@ interface IIBITICollection {
  * @title IBITINFTSale
  * @notice Продажа карточек коллекции за USDT. Покупка открыта всегда, пока карточка есть в тираже.
  *
- *         USDT сразу уходит на reserveWallet и на контракте не лежит. Цена 0 — карточка не продаётся.
+ *         Цена карточки задаётся один раз и больше не меняется никогда: ни вверх, ни вниз, в том числе владельцем.
+ *         Пока цена не задана, карточка не продаётся.
+ *         USDT сразу уходит на reserveWallet и на контракте не лежит.
  *         Покупатель передаёт цену, которую видел: при другой цене покупка отклоняется и разрешение не остаётся.
  *
  *         Контракт создаётся на паузе.
@@ -48,6 +50,7 @@ contract IBITINFTSale is Ownable2Step, Pausable, ReentrancyGuard {
     error NotForSale(uint256 cardId);
     error PriceChanged(uint256 cardId, uint256 price);
     error PriceOutOfRange(uint256 price);
+    error PriceLocked(uint256 cardId);
     error BadLength();
     error RenounceDisabled();
 
@@ -102,12 +105,14 @@ contract IBITINFTSale is Ownable2Step, Pausable, ReentrancyGuard {
         _unpause();
     }
 
+    /// @notice Цена задаётся один раз и навсегда.
     function setPrices(uint256[] calldata cardIds, uint256[] calldata prices) external onlyOwner {
         if (cardIds.length == 0 || cardIds.length != prices.length) revert BadLength();
         for (uint256 i; i < cardIds.length; ++i) {
             uint256 price = prices[i];
-            if (price != 0 && (price < MIN_PRICE || price > MAX_PRICE)) revert PriceOutOfRange(price);
+            if (price < MIN_PRICE || price > MAX_PRICE) revert PriceOutOfRange(price);
             collection.supplyOf(cardIds[i]); // несуществующая карточка отклоняется
+            if (priceOf[cardIds[i]] != 0) revert PriceLocked(cardIds[i]);
             priceOf[cardIds[i]] = price;
             emit PriceSet(cardIds[i], price);
         }

@@ -28,7 +28,7 @@ describe("IBITICollection и IBITINFTSale — коллекция навсегд�
     nft = await ethers.deployContract("IBITICollection", [owner.address, reserve.address]);
     sale = await ethers.deployContract("IBITINFTSale", [usdt.target, nft.target, owner.address, reserve.address]);
     await nft.addCards(URIS, SUPPLY);
-    await nft.setSeller(sale.target, true);
+    await nft.setSeller(sale.target);
     await sale.setPrices(IDS, PRICES);
     await sale.unpause();
     await usdt.transfer(alice.address, U(400_000));
@@ -72,16 +72,16 @@ describe("IBITICollection и IBITINFTSale — коллекция навсегд�
       expect(await usdt.balanceOf(bob.address)).to.equal(before);
     });
 
-    it("цена изменилась: покупка отклонена", async () => {
-      const old = await sale.priceOf(1);
-      await usdt.connect(alice).approve(sale.target, old);
-      await sale.setPrices([1], [U(11)]);
-      await expect(sale.connect(alice).buy(1, old)).to.be.revertedWithCustomError(sale, "PriceChanged");
+    it("покупка по другой цене отклоняется", async () => {
+      const price = await sale.priceOf(1);
+      await usdt.connect(alice).approve(sale.target, price * 2n);
+      await expect(sale.connect(alice).buy(1, price - 1n)).to.be.revertedWithCustomError(sale, "PriceChanged");
+      await expect(sale.connect(alice).buy(1, price + 1n)).to.be.revertedWithCustomError(sale, "PriceChanged");
     });
 
-    it("цена 0: не продаётся. Без разрешения и без денег не покупается", async () => {
-      await sale.setPrices([1], [0]);
-      await expect(sale.connect(alice).buy(1, 0)).to.be.revertedWithCustomError(sale, "NotForSale");
+    it("без цены не продаётся. Без разрешения и без денег не покупается", async () => {
+      await nft.addCards(["u12"], [3]);
+      await expect(sale.connect(alice).buy(12, 0)).to.be.revertedWithCustomError(sale, "NotForSale");
       await expect(sale.connect(alice).buy(99, 0)).to.be.revertedWithCustomError(sale, "NotForSale");
       await expect(sale.connect(stranger).buy(2, PRICES[1])).to.be.reverted;
       await usdt.connect(stranger).approve(sale.target, PRICES[1]);
@@ -174,6 +174,7 @@ describe("IBITICollection и IBITINFTSale — коллекция навсегд�
       await expect(sale.setPrices([1], [10])).to.be.revertedWithCustomError(sale, "PriceOutOfRange");
       await expect(sale.setPrices([1], [U(1_000_001)])).to.be.revertedWithCustomError(sale, "PriceOutOfRange");
       await expect(sale.setPrices([1, 2], [U(10)])).to.be.revertedWithCustomError(sale, "BadLength");
+      await expect(sale.setPrices([1], [0])).to.be.revertedWithCustomError(sale, "PriceOutOfRange");
     });
 
     it("метаданные меняются, пока не закреплены", async () => {
@@ -188,13 +189,10 @@ describe("IBITICollection и IBITINFTSale — коллекция навсегд�
   });
 
   describe("права", function () {
-    it("выпускает только продажа и только награды стейкинга", async () => {
+    it("выпускает только продажа", async () => {
       await expect(nft.connect(owner).mint(owner.address, 1)).to.be.revertedWithCustomError(nft, "NotSeller");
       await expect(nft.connect(stranger).mint(stranger.address, 1)).to.be.revertedWithCustomError(nft, "NotSeller");
-      await expect(nft.connect(owner).mintJackpot(owner.address, 10, "")).to.be.revertedWithCustomError(nft, "NotJackpotMinter");
-      await nft.setSeller(sale.target, false);
-      await usdt.connect(alice).approve(sale.target, PRICES[0]);
-      await expect(sale.connect(alice).buy(1, PRICES[0])).to.be.revertedWithCustomError(nft, "NotSeller");
+      expect(await nft.seller()).to.equal(sale.target);
     });
 
     it("посторонний ничем не управляет", async () => {
@@ -204,8 +202,7 @@ describe("IBITICollection и IBITINFTSale — коллекция навсегд�
       await expect(nft.connect(s).lowerMaxSupply(1, 1)).to.be.revertedWith(onlyOwner);
       await expect(nft.connect(s).setCardURI(1, "a")).to.be.revertedWith(onlyOwner);
       await expect(nft.connect(s).freezeCardURI(1)).to.be.revertedWith(onlyOwner);
-      await expect(nft.connect(s).setSeller(s.address, true)).to.be.revertedWith(onlyOwner);
-      await expect(nft.connect(s).setJackpotMinter(s.address, true)).to.be.revertedWith(onlyOwner);
+      await expect(nft.connect(s).setSeller(s.address)).to.be.revertedWith(onlyOwner);
       await expect(nft.connect(s).setRoyalty(s.address, 100)).to.be.revertedWith(onlyOwner);
       await expect(sale.connect(s).setPrices([1], [U(1)])).to.be.revertedWith(onlyOwner);
       await expect(sale.connect(s).pause()).to.be.revertedWith(onlyOwner);
@@ -238,8 +235,6 @@ describe("IBITICollection и IBITINFTSale — коллекция навсегд�
       await expect(Sale.deploy(usdt.target, ethers.ZeroAddress, a, a)).to.be.revertedWithCustomError(sale, "ZeroAddress");
       await expect(Sale.deploy(usdt.target, nft.target, ethers.ZeroAddress, a)).to.be.revertedWithCustomError(sale, "ZeroAddress");
       await expect(Sale.deploy(usdt.target, nft.target, a, ethers.ZeroAddress)).to.be.revertedWithCustomError(sale, "ZeroAddress");
-      await expect(nft.setSeller(ethers.ZeroAddress, true)).to.be.revertedWithCustomError(nft, "ZeroAddress");
-      await expect(nft.setJackpotMinter(ethers.ZeroAddress, true)).to.be.revertedWithCustomError(nft, "ZeroAddress");
       const token = await ethers.deployContract("IBITI", [[a], [I(100_000_000)]]);
       await expect(Sale.deploy(token.target, nft.target, a, a)).to.be.revertedWithCustomError(sale, "WrongDecimals");
     });
@@ -252,17 +247,6 @@ describe("IBITICollection и IBITINFTSale — коллекция навсегд�
       const [to, amount] = await nft.royaltyInfo(9999, ONE_K);
       expect(to).to.equal(reserve.address);
       expect(amount).to.equal(U(50));
-    });
-
-    it("одинаково для купленной и бонусной карточки", async () => {
-      const bought = await buy(alice, 1);
-      await nft.setJackpotMinter(stranger.address, true);
-      await nft.connect(stranger).mintJackpot(alice.address, 10, "");
-      const bonus = await nft.lastTokenId();
-      for (const id of [bought, bonus]) {
-        const [to, amount] = await nft.royaltyInfo(id, ONE_K);
-        expect([to, amount]).to.deep.equal([reserve.address, U(50)]);
-      }
     });
 
     it("площадка видит стандарт: ERC-2981, ERC-721 и список NFT", async () => {
@@ -291,158 +275,60 @@ describe("IBITICollection и IBITINFTSale — коллекция навсегд�
     });
   });
 
-  describe("бонус стейкинга", function () {
-    let minter;
-    const bonus = async (to = alice, level = 10) => {
-      await nft.connect(minter).mintJackpot(to.address, level, "ipfs://ignored");
-      return nft.lastTokenId();
-    };
-
-    beforeEach(async () => {
-      minter = stranger;
-      await nft.setJackpotMinter(minter.address, true);
+  describe("цена и выпуск навсегда", function () {
+    it("цену нельзя изменить ни вверх, ни вниз, ни обнулить, в том числе списком", async () => {
+      const price = await sale.priceOf(1);
+      await expect(sale.setPrices([1], [price + 1n])).to.be.revertedWithCustomError(sale, "PriceLocked");
+      await expect(sale.setPrices([1], [price - 1n])).to.be.revertedWithCustomError(sale, "PriceLocked");
+      await expect(sale.setPrices([1], [price])).to.be.revertedWithCustomError(sale, "PriceLocked");
+      await expect(sale.setPrices([1], [0])).to.be.revertedWithCustomError(sale, "PriceOutOfRange");
+      await nft.addCards(["u12"], [3]);
+      await expect(sale.setPrices([12, 1], [U(10), U(10)])).to.be.revertedWithCustomError(sale, "PriceLocked");
+      expect(await sale.priceOf(1)).to.equal(price);
+      expect(await sale.priceOf(12)).to.equal(0n);
     });
 
-    it("уровни 3, 5, 7, 10 выдают карточки 2, 3, 4, 5 с их метаданными", async () => {
-      for (const [level, cardId] of [[3, 2], [5, 3], [7, 4], [10, 5]]) {
-        expect(await nft.jackpotCardOf(level)).to.equal(BigInt(cardId));
-        const id = await bonus(alice, level);
-        expect(await nft.ownerOf(id)).to.equal(alice.address);
-        expect(await nft.cardOf(id)).to.equal(BigInt(cardId));
-        expect(await nft.tokenURI(id)).to.equal(URIS[cardId - 1]);
-      }
+    it("цена новой карточки задаётся один раз и тоже навсегда", async () => {
+      await nft.addCards(["u12"], [3]);
+      await sale.setPrices([12], [U(100_000)]);
+      await expect(sale.setPrices([12], [U(90_000)])).to.be.revertedWithCustomError(sale, "PriceLocked");
     });
 
-    it("другие уровни отклоняются, тираж не тронут", async () => {
-      for (const level of [0, 1, 2, 4, 6, 9, 11, 100]) {
-        await expect(nft.connect(minter).mintJackpot(alice.address, level, "")).to.be.revertedWithCustomError(nft, "BadJackpotLevel");
-      }
-      expect(await nft.lastTokenId()).to.equal(0n);
-    });
-
-    it("уменьшает общий тираж: это видно в продаже", async () => {
-      await bonus(alice, 3);
-      await bonus(alice, 3);
-      const [, minted] = await sale.catalog();
-      expect(minted[1]).to.equal(2n);
-      const [was] = await nft.supplyOf(2);
-      await buy(bob, 2);
-      const [now] = await nft.supplyOf(2);
-      expect(now).to.equal(was + 1n);
-    });
-
-    it("бонус выбрал весь тираж: купить уже нельзя", async () => {
-      await nft.lowerMaxSupply(5, 2);
-      await bonus(alice, 10);
-      await bonus(alice, 10);
-      const price = await sale.priceOf(5);
-      await usdt.connect(bob).approve(sale.target, price);
-      await expect(sale.connect(bob).buy(5, price)).to.be.revertedWithCustomError(nft, "SoldOut");
-    });
-
-    it("покупки выбрали весь тираж: бонуса уже нет", async () => {
-      await nft.lowerMaxSupply(2, 1);
-      await buy(bob, 2);
-      await expect(nft.connect(minter).mintJackpot(alice.address, 3, "")).to.be.revertedWithCustomError(nft, "SoldOut");
-    });
-
-    it("можно передать и продать, как купленную карточку", async () => {
-      const id = await bonus(alice, 10);
-      await nft.connect(alice).transferFrom(alice.address, bob.address, id);
-      expect(await nft.ownerOf(id)).to.equal(bob.address);
-      await nft.connect(bob).approve(stranger.address, id);
-      await nft.connect(stranger).transferFrom(bob.address, alice.address, id);
-      expect(await nft.ownerOf(id)).to.equal(alice.address);
-      const [minted] = await nft.supplyOf(5);
-      expect(minted).to.equal(1n);
-    });
-
-    it("список NFT кошелька показывает и купленные, и бонусные", async () => {
-      const a = await buy(alice, 2);
-      const b = await bonus(alice, 3);
-      expect(await nft.tokenOfOwnerByIndex(alice.address, 0)).to.equal(a);
-      expect(await nft.tokenOfOwnerByIndex(alice.address, 1)).to.equal(b);
-    });
-  });
-
-  describe("связка с настоящим стейкингом", function () {
-    let token, staking;
-
-    const matured = async (months, idx = 0) => {
-      await staking.connect(alice).stake(I(1_000), months);
-      await nextTxAt(await staking.maturityOf(alice.address, idx));
-    };
-
-    beforeEach(async () => {
-      token = await ethers.deployContract("IBITI", [[owner.address], [I(100_000_000)]]);
-      staking = await ethers.deployContract("IBITIStaking", [token.target, owner.address, I(100)]);
-      await token.transfer(staking.target, I(1_000_000));
-      await staking.unpause();
-      await token.transfer(alice.address, I(100_000));
-      await token.connect(alice).approve(staking.target, ethers.MaxUint256);
-    });
-
-    it("вклад на каждый срок даёт 2 свои карточки, тираж уменьшается, их можно продать", async () => {
-      await staking.setNFT(nft.target);
-      await nft.setJackpotMinter(staking.target, true);
-      const want = [[3, 3n, 2], [6, 5n, 3], [9, 7n, 4], [12, 10n, 5]];
-      for (const [idx, [months, level, cardId]] of want.entries()) {
-        await matured(months, idx);
-        const before = await nft.balanceOf(alice.address);
-        await expect(staking.connect(alice).unstake(idx)).to.emit(staking, "NFTRewardMinted").withArgs(alice.address, level);
-        expect(await nft.balanceOf(alice.address)).to.equal(before + 2n);
-        const id = await nft.lastTokenId();
-        expect(await nft.cardOf(id)).to.equal(BigInt(cardId));
-        expect(await nft.tokenURI(id)).to.equal(URIS[cardId - 1]);
-        const [minted] = await nft.supplyOf(cardId);
-        expect(minted).to.equal(2n);
-        await nft.connect(alice).transferFrom(alice.address, bob.address, id);
-        expect(await nft.ownerOf(id)).to.equal(bob.address);
-      }
-    });
-
-    it("продление в окне тоже даёт карточки", async () => {
-      await staking.setNFT(nft.target);
-      await nft.setJackpotMinter(staking.target, true);
-      await matured(6);
-      await staking.connect(alice).renew(0, I(1_000), 3);
-      const [minted] = await nft.supplyOf(3);
-      expect(minted).to.equal(2n);
-      expect(await nft.balanceOf(alice.address)).to.equal(2n);
-    });
-
-    it("остался 1 из 2: одна карточка выдана, вторая пропущена, токены выплачены", async () => {
-      await staking.setNFT(nft.target);
-      await nft.setJackpotMinter(staking.target, true);
-      await nft.lowerMaxSupply(2, 1);
-      await matured(3);
-      const before = await token.balanceOf(alice.address);
-      const tx = staking.connect(alice).unstake(0);
-      await expect(tx).to.emit(staking, "NFTRewardMinted").withArgs(alice.address, 3n);
-      await expect(tx).to.emit(staking, "NFTRewardSkipped").withArgs(alice.address, 3n);
-      expect(await token.balanceOf(alice.address)).to.equal(before + I(1_050));
+    it("продажа назначается один раз: другую не подключить, себе карточку не выпустить", async () => {
+      await expect(nft.setSeller(owner.address)).to.be.revertedWithCustomError(nft, "SellerAlreadySet");
+      await expect(nft.setSeller(sale.target)).to.be.revertedWithCustomError(nft, "SellerAlreadySet");
+      await expect(nft.connect(owner).mint(owner.address, 1)).to.be.revertedWithCustomError(nft, "NotSeller");
+      await buy(alice, 1);
       expect(await nft.balanceOf(alice.address)).to.equal(1n);
     });
 
-    it("тираж распродан: токены выплачены, NFT нет", async () => {
-      await staking.setNFT(nft.target);
-      await nft.setJackpotMinter(staking.target, true);
-      await nft.lowerMaxSupply(2, 1);
-      await buy(bob, 2);
-      await matured(3);
-      const before = await token.balanceOf(alice.address);
-      await expect(staking.connect(alice).unstake(0)).to.emit(staking, "NFTRewardSkipped");
-      expect(await token.balanceOf(alice.address)).to.equal(before + I(1_050));
-      expect(await nft.balanceOf(alice.address)).to.equal(0n);
+    it("назначить можно только контракт, событие видно в сети", async () => {
+      const fresh = await ethers.deployContract("IBITICollection", [owner.address, reserve.address]);
+      await expect(fresh.setSeller(owner.address)).to.be.revertedWithCustomError(fresh, "NotAContract");
+      await expect(fresh.setSeller(ethers.ZeroAddress)).to.be.revertedWithCustomError(fresh, "NotAContract");
+      await expect(fresh.setSeller(sale.target)).to.emit(fresh, "SellerSet").withArgs(sale.target);
     });
 
-    it("нет роли у стейкинга: токены выплачены, NFT пропущен", async () => {
-      await staking.setNFT(nft.target);
-      await matured(3);
-      const before = await token.balanceOf(alice.address);
-      await expect(staking.connect(alice).unstake(0)).to.emit(staking, "NFTRewardSkipped");
-      expect(await token.balanceOf(alice.address)).to.be.gt(before);
-      expect(await nft.balanceOf(alice.address)).to.equal(0n);
+    it("владелец не добавит больше 12 карточек", async () => {
+      await expect(nft.addCards(["a", "b"], [1, 1])).to.be.revertedWithCustomError(nft, "TooManyCards");
+      await nft.addCards(["a"], [1]);
+      expect(await nft.cardCount()).to.equal(12n);
+      await expect(nft.addCards(["b"], [1])).to.be.revertedWithCustomError(nft, "TooManyCards");
+    });
+  });
+
+  describe("права владельца", function () {
+    const names = (c) => [...new Set(c.interface.fragments.filter((f) => f.type === "function" && f.stateMutability !== "view" && f.stateMutability !== "pure").map((f) => f.name))].sort();
+
+    it("коллекция: записывающих функций ровно столько, новая появится только осознанно", async () => {
+      expect(names(nft)).to.deep.equal([
+        "acceptOwnership", "addCards", "approve", "freezeCardURI", "lowerMaxSupply", "mint", "safeTransferFrom", "setApprovalForAll",
+        "setCardURI", "setRoyalty", "setSeller", "transferFrom", "transferOwnership",
+      ].sort());
+    });
+
+    it("продажа: записывающих функций ровно столько", async () => {
+      expect(names(sale)).to.deep.equal(["acceptOwnership", "buy", "pause", "rescueToken", "setPrices", "transferOwnership", "unpause"].sort());
     });
   });
 });

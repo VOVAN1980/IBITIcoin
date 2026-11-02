@@ -33,10 +33,8 @@ async function deployAll() {
   const nft = await ethers.deployContract("IBITICollection", [owner.address, reserve.address]);
   const nftSale = await ethers.deployContract("IBITINFTSale", [usdt.target, nft.target, owner.address, reserve.address]);
   await nft.addCards(cards.map((c) => c.uri), cards.map((c) => c.maxSupply));
-  await nft.setSeller(nftSale.target, true);
+  await nft.setSeller(nftSale.target);
   await nftSale.setPrices(cards.map((c) => c.id), cards.map((c) => U(c.price)));
-  await nft.setJackpotMinter(staking.target, true);
-  await staking.setNFT(nft.target);
   await nftSale.unpause();
 
   for (const u of [alice, bob, carol, mallory]) {

@@ -201,51 +201,61 @@ describe("Fork BSC: атаки на настоящие контракты", func
   describe("настоящие покупки и стейкинг", function () {
     it("карточка за настоящий USDT: деньги на Ledger Основной, тираж -1, разрешения нет", async () => {
       const before = await usdt.balanceOf(LEDGERS.Основной);
-      await usdt.approve(ADDR.nftSale, U(10));
-      await c.nftSale.connect(mallory).buy(1, U(10));
+      await usdt.approve(ADDR.nftSale, U(20));
+      await c.nftSale.connect(mallory).buy(1, U(20));
       expect(await c.nft.ownerOf(1)).to.equal(mallory.address);
       expect(await c.nft.tokenURI(1)).to.equal("https://www.ibiticoin.com/nft/metadata/1.json");
-      expect((await usdt.balanceOf(LEDGERS.Основной)) - before).to.equal(U(10));
+      expect((await usdt.balanceOf(LEDGERS.Основной)) - before).to.equal(U(20));
       expect(await usdt.allowance(mallory.address, ADDR.nftSale)).to.equal(0n);
       const [minted] = await c.nft.supplyOf(1);
       expect(minted).to.equal(1n);
     });
 
     it("Pandora: вторую не купить, деньги не списываются", async () => {
-      await usdt.approve(ADDR.nftSale, U(50_000));
-      await c.nftSale.connect(mallory).buy(11, U(50_000));
-      await giveUsdt(alice.address, U(50_000));
-      await usdt.connect(alice).approve(ADDR.nftSale, U(50_000));
-      await expect(c.nftSale.connect(alice).buy(11, U(50_000))).to.be.revertedWithCustomError(c.nft, "SoldOut");
-      expect(await usdt.balanceOf(alice.address)).to.equal(U(50_000));
+      await usdt.approve(ADDR.nftSale, U(100_000));
+      await c.nftSale.connect(mallory).buy(11, U(100_000));
+      await giveUsdt(alice.address, U(100_000));
+      await usdt.connect(alice).approve(ADDR.nftSale, U(100_000));
+      await expect(c.nftSale.connect(alice).buy(11, U(100_000))).to.be.revertedWithCustomError(c.nft, "SoldOut");
+      expect(await usdt.balanceOf(alice.address)).to.equal(U(100_000));
     });
 
-    it("IBITI с бонусом на сайте и настоящий стейкинг: 4 срока, карточки и выплаты точные, карточки продаются", async () => {
+    it("IBITI с бонусом на сайте и настоящий стейкинг: вся лестница, выплаты точные, карточек не выдаётся", async () => {
       const token = new ethers.Contract(ADDR.token, ERC20, mallory);
       await usdt.approve(ADDR.promo, U(100));
       await c.promo.connect(mallory).buyWithReferral(U(100), ethers.ZeroAddress, 0);
       expect(await token.balanceOf(mallory.address)).to.equal(I(1_100));
 
-      await token.approve(ADDR.staking, I(1_000));
-      const want = [[3, 2, 105], [6, 3, 112], [9, 4, 120], [12, 5, 130]];
-      for (const [months] of want) await c.staking.connect(mallory).stake(I(100), months);
-      const free = await c.staking.freeRewards();
-      expect(free).to.equal(I(1_000_000 - 5 - 12 - 20 - 30));
+      await token.connect(await asAccount(LEDGERS.Казна)).transfer(mallory.address, I(12_000));
+      await token.approve(ADDR.staking, await token.balanceOf(mallory.address));
+      for (let m = 1; m <= 12; m++) await c.staking.connect(mallory).stake(I(1_000), m);
 
-      for (const [i, [months, cardId, payout]] of want.entries()) {
-        await network.provider.send("evm_setNextBlockTimestamp", [Number(await c.staking.maturityOf(mallory.address, i))]);
+      for (let m = 1; m <= 12; m++) {
+        await network.provider.send("evm_setNextBlockTimestamp", [Number(await c.staking.maturityOf(mallory.address, m - 1)) + 1]);
         const before = await token.balanceOf(mallory.address);
-        await c.staking.connect(mallory).unstake(i);
-        expect((await token.balanceOf(mallory.address)) - before, `${months} мес`).to.equal(I(payout));
-        const id = await c.nft.lastTokenId();
-        expect(await c.nft.cardOf(id)).to.equal(BigInt(cardId));
-        expect(await c.nft.tokenURI(id)).to.equal(`https://www.ibiticoin.com/nft/metadata/${cardId}.json`);
-        const [minted] = await c.nft.supplyOf(cardId);
-        expect(minted).to.equal(2n);
-        await c.nft.connect(mallory).transferFrom(mallory.address, alice.address, id);
-        expect(await c.nft.ownerOf(id)).to.equal(alice.address);
+        await c.staking.connect(mallory).unstake(m - 1);
+        const percent = await c.staking.rewardPercent(m);
+        expect((await token.balanceOf(mallory.address)) - before, `${m} мес`).to.equal(I(1_000) + (I(1_000) * percent) / 100n);
       }
-      expect(await c.nft.balanceOf(mallory.address)).to.equal(4n);
+      expect(await c.nft.lastTokenId()).to.equal(0n);
+    });
+
+    it("трюк из письма: 50 вкладов по 100 IBITI не дают карточек", async () => {
+      const token = new ethers.Contract(ADDR.token, ERC20, mallory);
+      await token.connect(await asAccount(LEDGERS.Казна)).transfer(mallory.address, I(5_000));
+      await token.approve(ADDR.staking, I(5_000));
+      for (let i = 0; i < 50; i++) await c.staking.connect(mallory).stake(I(100), 12);
+      await travel(360 * DAY);
+      for (let i = 0; i < 50; i++) await c.staking.connect(mallory).unstake(i);
+      expect(await c.nft.balanceOf(mallory.address)).to.equal(0n);
+    });
+
+    it("цена и выпуск закреплены на настоящих контрактах, даже с ключом Основной", async () => {
+      const reserve = await asAccount(LEDGERS.Основной);
+      expect(await c.nft.seller()).to.equal(ADDR.nftSale);
+      await expect(c.nftSale.connect(reserve).setPrices([1], [U(1)])).to.be.revertedWithCustomError(c.nftSale, "PriceLocked");
+      await expect(c.nft.connect(reserve).setSeller(reserve.address)).to.be.revertedWithCustomError(c.nft, "SellerAlreadySet");
+      await expect(c.nft.connect(reserve).mint(reserve.address, 11)).to.be.revertedWithCustomError(c.nft, "NotSeller");
     });
 
     it("процент с перепродаж на настоящем контракте: 5% на Основной", async () => {

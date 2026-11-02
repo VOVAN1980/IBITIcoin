@@ -1,0 +1,27 @@
+{
+  "network": "bscTestnet",
+  "chainId": 97,
+  "deployer": "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+  "status": "complete",
+  "owner": "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+  "usdt": "0xe4221B295012D583347d400BA28f5783d61c7E13",
+  "reserve": "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41",
+  "collection": {
+    "address": "0xf30AFC6378dC65B9f1B5F33d2806ffBDb9599752",
+    "tx": "0x9a4b8dbd11478c25a3245c652b1a8fab53626bd35d88bce8fd9dd604ff789802",
+    "args": [
+      "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+      "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41"
+    ]
+  },
+  "sale": {
+    "address": "0x4D3ed53D4200cfD82CDE229C5a8c4efe6f485708",
+    "tx": "0x82aed30c45ff7dcab5857b386c32c8cf97292bb3d6db77197875a6ed8ef80722",
+    "args": [
+      "0xe4221B295012D583347d400BA28f5783d61c7E13",
+      "0xf30AFC6378dC65B9f1B5F33d2806ffBDb9599752",
+      "0xC00dC8E3F4647AAa4791AE58901eDDFE6095adA5",
+      "0x9d8dd8B2CFF7A17967fA0eF19eD5C0b3EBeFDe41"
+    ]
+  }
+}
