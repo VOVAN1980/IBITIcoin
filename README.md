@@ -140,6 +140,7 @@ Test USDT with 18 decimals, like BSC-USDT, and a stand-in for the NFT contract u
 - `contracts/` — Solidity contracts
 - `scripts/` — deployment, verification and post-deployment checks
 - `test/` — test suite; `test/fork/` runs against a copy of BSC
+- `test/attacks/` — attacks on every contract; `test/fork/attacks.fork.test.js` repeats them against the live contracts on a copy of BSC
 - `config/` — token distribution for each network
 - `deployments/` — addresses, constructor arguments and transactions of each deployment
 - `img/` — brand assets
@@ -170,6 +171,8 @@ npm test
 OpenZeppelin Contracts 4.9.3.
 
 Fork tests are skipped unless `FORK_RPC_URL` and `FORK_BLOCK` are set in the environment.
+
+`node scripts/security-check.js` reads the live network and lists owners, granted roles, open approvals and every IBITI transfer. It sends nothing.
 
 ---
 

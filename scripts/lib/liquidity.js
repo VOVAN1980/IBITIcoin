@@ -64,6 +64,12 @@ async function planLiquidity({ signer, tokenAddress, usdtAddress, routerAddress,
           problems.push(`цена пула ${poolPrice} USDT отличается от ожидаемой ${priceUsdt} больше чем на 2%`);
         }
       }
+    } else {
+      // Пустая пара, но токены уже лежат: первая ликвидность засчитает их и получит чужую цену
+      const [dI, dU] = await Promise.all([token.balanceOf(pairAddress), usdt.balanceOf(pairAddress)]);
+      if (dI !== 0n || dU !== 0n) {
+        problems.push(`в пустой паре ${pairAddress} лежат токены: ${ethers.formatUnits(dI, decI)} IBITI и ${ethers.formatUnits(dU, decU)} USDT — первую ликвидность не добавляем`);
+      }
     }
   }
 
