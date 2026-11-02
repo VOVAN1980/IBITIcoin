@@ -58,12 +58,12 @@ describe("Атаки: продажа IBITI", function () {
   });
 
   it("стоимость накрутки рефералки: новый кошелёк даёт только 1 IBITI за покупку от $10", async () => {
-    // Покупатель с новым кошельком платит $10 и получает 110 IBITI, второй свой кошелёк получает +1 IBITI.
+    // Покупатель с новым кошельком платит $10 и получает 100 IBITI, второй свой кошелёк получает +1 IBITI.
     const before = await c.token.balanceOf(c.mallory.address);
     const buyerBefore = await c.token.balanceOf(c.bob.address);
     await pay(c.bob, U(10), c.mallory.address);
     const got = (await c.token.balanceOf(c.bob.address)) - buyerBefore + (await c.token.balanceOf(c.mallory.address)) - before;
-    expect(got).to.equal(I(111));
+    expect(got).to.equal((await c.promo.quoteTotalToBuyer(U(10)))[2] + I(1));
   });
 
   it("запас кончился: покупка отклонена целиком, частичной выдачи нет", async () => {

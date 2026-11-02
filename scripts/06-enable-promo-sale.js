@@ -20,8 +20,8 @@ async function main() {
   const problems = [];
   if ((await sale.owner()) !== me) problems.push(`владелец ${await sale.owner()}, а подписывает ${me}`);
   if ((await sale.poolRemaining()) < I(1_000_000)) problems.push(`запас ${ethers.formatUnits(await sale.poolRemaining(), 8)} IBITI, нужен 1 000 000`);
-  if ((await sale.price()) !== U("0.10")) problems.push("цена не $0,10");
-  if ((await sale.quoteBoughtAmount(U(10))) !== I(100)) problems.push("10 USDT должны давать 100 IBITI");
+  if ((await sale.price()) !== U("0.11")) problems.push("цена не $0,11");
+  if ((await sale.quoteBoughtAmount(U(10))) !== 9_090_909_090n) problems.push("10 USDT должны давать 90.90909090 IBITI");
   if ((await sale.reserveWallet()) !== me) problems.push(`USDT идут на ${await sale.reserveWallet()}`);
   if (!(await sale.promoActive())) problems.push("промо выключено");
 

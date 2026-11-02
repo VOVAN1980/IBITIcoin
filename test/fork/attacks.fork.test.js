@@ -224,7 +224,7 @@ describe("Fork BSC: атаки на настоящие контракты", func
       const token = new ethers.Contract(ADDR.token, ERC20, mallory);
       await usdt.approve(ADDR.promo, U(100));
       await c.promo.connect(mallory).buyWithReferral(U(100), ethers.ZeroAddress, 0);
-      expect(await token.balanceOf(mallory.address)).to.equal(I(1_100));
+      expect(await token.balanceOf(mallory.address)).to.equal((await c.promo.quoteTotalToBuyer(U(100)))[2]);
 
       await token.connect(await asAccount(LEDGERS.Казна)).transfer(mallory.address, I(12_000));
       await token.approve(ADDR.staking, await token.balanceOf(mallory.address));
@@ -330,6 +330,7 @@ describe("Fork BSC: атаки на настоящие контракты", func
           spent += size;
           got += out;
         }
+        expect(cycles, `пул $${depthUsd}`).to.equal(0);
         const pairAddr = await new ethers.Contract(await router.factory(), FACTORY_ABI, mallory).getPair(ADDR.token, USDT);
         const pair = new ethers.Contract(pairAddr, PAIR_ABI, mallory);
         const [r0, r1] = await pair.getReserves();
