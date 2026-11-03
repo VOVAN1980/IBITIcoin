@@ -14,9 +14,9 @@
   <a href="https://www.ibiticoin.com">Website</a> •
   <a href="https://www.ibiticoin.com/whitepaper.html">Whitepaper</a> •
   <a href="https://t.me/IBITIcoin_chat">Telegram</a> •
-  <a href="https://x.com/ibiticoin">X</a> •
+  <a href="https://x.com/IBITILabs">X</a> •
   <a href="https://www.facebook.com/groups/ibiticoin">Facebook Group</a> •
-  <a href="https://www.linkedin.com/in/ibiticoin">LinkedIn</a>
+  <a href="https://www.linkedin.com/in/ibitilabs">LinkedIn</a>
 </p>
 
 ---
